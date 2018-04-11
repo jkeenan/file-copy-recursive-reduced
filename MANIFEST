@@ -6,10 +6,10 @@ lib/File/Copy/Recursive/Reduced.pm
 LICENSE
 Makefile.PL
 MANIFEST			This list of files
+notyet/01.legacy.t
+notyet/02.legacy-symtogsafe.t
+notyet/03.github-issue-5.t
+notyet/04.readonly-dir.t
 README
 t/001-load.t
-t/notyet/01.legacy.t
-t/notyet/02.legacy-symtogsafe.t
-t/notyet/03.github-issue-5.t
-t/notyet/04.readonly-dir.t
 Todo
