@@ -12,4 +12,5 @@ notyet/03.github-issue-5.t
 notyet/04.readonly-dir.t
 README
 t/001-load.t
+t/002-fcopy.t
 Todo

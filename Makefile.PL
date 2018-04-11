@@ -19,6 +19,7 @@ WriteMakefile(
         Cwd             => 0,
         File::Spec      => 0,
         Path::Tiny      => 0,
+        Capture::Tiny      => 0,
                     },
     (
         $] >= 5.005
