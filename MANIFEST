@@ -13,4 +13,5 @@ notyet/04.readonly-dir.t
 README
 t/001-load.t
 t/002-fcopy.t
+t/lib/MockHomeDir.pm
 Todo
