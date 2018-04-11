@@ -141,6 +141,39 @@ SKIP: {
     ok(-f $new, "$new created");
 }
 
+SKIP: {
+    skip 'symlinks not available on this platform', 4
+        unless $self->{CopyLink};
+
+    my ($self, $tdir, $old, $new, $symlink, $rv);
+    $self = File::Copy::Recursive::Reduced->new();
+    $tdir = tempdir( CLEANUP => 1 );
+    $old = create_tfile($tdir);
+    $symlink = File::Spec->catfile($tdir, 'sym');
+    $rv = symlink($old, $symlink)
+        or croak "Unable to symlink $symlink to target $old for testing";
+    ok(-l $symlink, "fcopy(): $symlink is indeed a symlink");
+    $new = File::Spec->catfile($tdir, 'new');
+    $rv = $self->fcopy($symlink, $new);
+    ok($rv, "fcopy() returned true value when copying from symlink");
+    ok(-f $new, "fcopy(): $new is a file");
+    ok(-l $new, "fcopy(): but $new is also another symlink");
+
+    my ($xold, $xnew, $xsymlink, $stderr);
+    $xold = create_tfile($tdir);
+    $xsymlink = File::Spec->catfile($tdir, 'xsym');
+    $rv = symlink($xold, $xsymlink)
+        or croak "Unable to symlink $xsymlink to target $xold for testing";
+    ok(-l $xsymlink, "fcopy(): $xsymlink is indeed a symlink");
+    $xnew = File::Spec->catfile($tdir, 'xnew');
+    unlink $xold or croak "Unable to unlink $xold during testing";
+    $stderr = capture_stderr { $rv = $self->fcopy($xsymlink, $xnew); };
+    ok($rv, "fcopy() returned true value when copying from symlink");
+    like($stderr, qr/Copying a symlink \($xsymlink\) whose target does not exist/,
+        "fcopy(): Got expected warning when copying from symlink whose target does not exist");
+
+}
+
 ########## SUBROUTINES ##########
 
 sub create_tfile {

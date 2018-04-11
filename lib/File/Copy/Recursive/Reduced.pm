@@ -193,11 +193,9 @@ original file before copying.
 
 =over 4
 
-=item * Decide status of symlinks in first argument.
-
 =item * Decide status of C<$File::Copy::Recursive::BdTrgWrn>.
 
-=item * Decide status of C<$File::Copy::Recursive::KeepMode>.
+At present, I'm not implementing it -- at least not for C<fcopy()>.
 
 =back
 
@@ -208,23 +206,25 @@ original file before copying.
 =cut
 
 sub fcopy {
-    my ($self, $from, $to, $buf) = @_;
     return if @_ < 3 or @_ > 4;
+    my ($self, $from, $to, $buf) = @_;
     return unless $self->_samecheck($from, $to);
     my ( $volm, $path ) = File::Spec->splitpath($to);
     if ( $path && !-d $path ) {
         $self->pathmk(File::Spec->catpath($volm, $path, ''));
     }
-#    if ( -l $_[0] && $CopyLink ) {
-#        my $target = readlink( shift() );
-#        ($target) = $target =~ m/(.*)/;    # mass-untaint is OK since we have to allow what the file system does
-#        carp "Copying a symlink ($_[0]) whose target does not exist"
-#          if !-e $target && $BdTrgWrn;
-#        my $new = shift();
-#        unlink $new if -l $new;
-#        symlink( $target, $new ) or return;
-#    }
-#    else {
+    if ( -l $from && $self->{CopyLink} ) {
+        my $target = readlink($from);
+        # FCR: mass-untaint is OK since we have to allow what the file system does
+        ($target) = $target =~ m/(.*)/;
+        carp "Copying a symlink ($from) whose target does not exist"
+            if !-e $target;
+        # It's not clear how to exercise the TRUE branch in the following
+        # statement.
+        unlink $to if -l $to;
+        symlink( $target, $to ) or return;
+    }
+    else {
         unless ($buf) {
             if ($self->{debug}) { print STDERR "from: $from\tto: $to\n"; }
             copy($from, $to) or return;
@@ -238,7 +238,7 @@ sub fcopy {
         my $mode_trg = -d $to ? File::Spec->catfile( $to, $base_file[$#base_file] ) : $to;
 
         chmod scalar((stat($from))[2]), $mode_trg if $self->{KeepMode};
-#    }
+    }
     # TODO: Is this advice superseded?
     # use 0's in case they do math on them and in case rcopy() is called 
     # in list context = no uninit val warnings
