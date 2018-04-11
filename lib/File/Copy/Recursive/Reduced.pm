@@ -284,11 +284,12 @@ sub pathmk {
 
 sub _samecheck {
     my ($self, $from, $to) = @_;
-    #    return 1 if $^O eq 'MSWin32';    # for consistency with FCR
     return if !defined $from || !defined $to;
     return if $from eq $to;
 
-    if ($self->{PFSCheck}) {
+    if ($self->{PFSCheck} and not ($^O eq 'MSWin32')) {
+        # perldoc perlport: "(Win32) "dev" and "ino" are not meaningful."
+        # Will probably have to add restrictions for VMS and other OSes.
         my $one = join( '-', ( stat $from )[ 0, 1 ] ) || '';
         my $two = join( '-', ( stat $to   )[ 0, 1 ] ) || '';
         if ( $one and $one eq $two ) {
