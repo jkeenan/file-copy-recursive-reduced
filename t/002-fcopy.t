@@ -124,6 +124,20 @@ if ($self->{Link}) {
     ok(-f $new, "$new created");
 }
 
+{
+    my $self = File::Copy::Recursive::Reduced->new({ debug => 1 });
+    my $tdir = tempdir( CLEANUP => 1 );
+    my $old = create_tfile($tdir);
+    my $newpath = File::Spec->catdir($tdir, 'newpath');
+    my $new = File::Spec->catfile($newpath, 'new');
+    my $buffer = (1024 * 1024 * 2) + 1;
+    my ($rv, $stderr);
+    $stderr = capture_stderr { $rv = $self->fcopy($old, $new, $buffer); };
+    ok($rv, "fcopy(): Providing buffer as third argument at least does not die");
+    like($stderr, qr/^from:.*?to:.*?buf:/, "fcopy(): got plausible debugging output");
+    ok(-f $new, "$new created");
+}
+
 ########## SUBROUTINES ##########
 
 sub create_tfile {

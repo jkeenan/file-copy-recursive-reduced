@@ -15,20 +15,15 @@ use Cwd ();
 our $VERSION = '0.001';
 
 #$MaxDepth = 0;
-#$KeepMode = 1;
 #$CPRFComp = 0;
-#$CopyLink = eval { local $SIG{'__DIE__'}; symlink '', ''; 1 } || 0;
-#$PFSCheck = 1;
 #$RemvBase = 0;
 #$NoFtlPth = 0;
 #$ForcePth = 0;
-#$CopyLoop = 0;
 #$RMTrgFil = 0;
 #$RMTrgDir = 0;
 #$CondCopy = {};
 #$BdTrgWrn = 0;
 #$SkipFlop = 0;
-#$DirPerms = 0777;
 
 =head1 NAME
 
@@ -90,11 +85,34 @@ partially equivalent to the similarly named functions exported by FCR.
 
 =item * Purpose
 
+File::Copy::Recursive::Reduced constructor.
+
 =item * Arguments
 
     $self = File::Copy::Recursive::Reduced->new({});
 
+If an argument is provided, it must be a hash reference.  Valid keys for that
+hashref are:
+
+=over 4
+
+=item * C<PFSCheck>
+
+On by default; provide a Perl-false value to turn off.
+
+=item * C<KeepMode>
+
+On by default; provide a Perl-false value to turn off.
+
+=item * C<debug>
+
+Off by default; provide a Perl-true value to turn off.
+
+=back
+
 =item * Return Value
+
+File::Copy::Recursive::Reduced object.
 
 =item * Comment
 
@@ -147,9 +165,8 @@ Takes three arguments, the first two required, the third optional.
 
 =item 2 Path where copy is to be created.
 
-=item 3
-
-Buffer size:  the number of bytes from the first file which will be held in memory at any given time before being written to the second file.
+=item 3 Buffer size:  the number of bytes from the first file which will be
+held in memory at any given time before being written to the second file.
 
 =back
 
@@ -181,6 +198,10 @@ original file before copying.
 =item * Decide status of C<$File::Copy::Recursive::BdTrgWrn>.
 
 =item * Decide status of C<$File::Copy::Recursive::KeepMode>.
+
+=back
+
+=back
 
 =back
 
