@@ -46,21 +46,69 @@ File::Copy::Recursive::Reduced - Recursive copying of files and directories with
 
 =head1 SYNOPSIS
 
-TK
+    use File::Copy::Recursive::Reduced;
+
+    my $self = File::Copy::Recursive::Reduced->new({});
+    $self->fcopy($orig,$new[,$buf]) or die $!;
+    $self->dircopy($orig,$new[,$buf]) or die $!;
 
 =head1 DESCRIPTION
 
-TK
+This library is intended as a not-quite-drop-in replacement for certain
+functionality provided by L<CPAN distribution
+File-Copy-Recursive|http://search.cpan.org/dist/File-Copy-Recursive/>.  The
+library provides methods similar enough to that distribution's C<fcopy()> and
+C<dircopy()> functions to be usable in those CPAN distributions often
+described as being part of the Perl toolchain.
 
 =head2 Rationale
 
-TK
+F<File::Copy::Recursive> (hereinafter referred to as B<FCR>) is heavily used
+in other CPAN libraries.  Out of over 30,000 other CPAN distributions, it
+ranks, by one estimate, as the 129th highest distribution in terms of number
+of direct and indirect reverse dependencies.  Hence, it has to work correctly
+and be installable on all operating systems where Perl is well supported.
+
+However, as of the time of creation of F<File::Copy::Recursive::Reduced>
+(April 2018), FCR is failing to pass its tests against either Perl 5.26 or
+Perl 5 blead on important operating systems including Windows, FreeBSD and
+NetBSD
+(L<http://fast-matrix.cpantesters.org/?dist=File-Copy-Recursive%200.40>).
+CPAN installers such as F<cpan> and F<cpanm> will not install it without
+resort to C<--force> options and will prevent distributions dependent on FCR
+from being installed as well.  Some patches have been provided to the L<FCR
+bug tracker|https://rt.cpan.org/Dist/Display.html?Name=File-Copy-Recursive>
+for certain problems but FCR's author has not yet applied them.  Even if,
+however, those patches are applied, FCR may not install on certain platforms.
+
+F<File::Copy::Recursive::Reduced> (hereinafter referred to as B<FCR2>) is
+intended to provide little more than a minimal subset of FCR's functionality,
+that is, just enough to get the Perl toolchain working on the platforms where
+FCR is currently failing.  Methods will be added to FCR2 only insofar as
+investigation shows that they can replace usage of FCR functions in Toolchain
+modules.  No attempt will be made to reproduce all the functionality currently
+provided or claimed to be provided by FCR.
 
 =head1 METHODS
 
-TK
+The current version of FCR2 provides a constructor and three public methods
+partially equivalent to the similarly named functions exported by FCR.
 
 =head2 C<new()>
+
+=over 4
+
+=item * Purpose
+
+=item * Arguments
+
+    $self = File::Copy::Recursive::Reduced->new({});
+
+=item * Return Value
+
+=item * Comment
+
+=back
 
 =cut
 
@@ -82,25 +130,49 @@ sub new {
 
 =head2 C<fcopy()>
 
-TK
+=over 4
+
+=item * Purpose
+
+=item * Arguments
+
+    $self->fcopy($orig,$new[,$buf]) or die $!;
+
+=item * Return Value
+
+=item * Comment
+
+=back
 
 =cut
 
+
 sub fcopy {}
 
+    
 =head2 C<dircopy()>
 
-TK
+=over 4
+
+=item * Purpose
+
+=item * Arguments
+
+    $self->dircopy($orig,$new[,$buf]) or die $!;
+
+=item * Return Value
+
+=item * Comment
+
+=back
 
 =cut
 
 sub dircopy {}
 
-=head2 C<pathmk()>
-
-TK
-
-=cut
+# pathmk() currently provided only because it is called from within fcopy().
+# It will be publicly documented only when need for its use in toolchain
+# modules has been demonstrated.
 
 sub pathmk {}
 
