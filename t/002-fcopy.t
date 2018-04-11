@@ -15,6 +15,8 @@ my ($self, $from, $to, $buf, $rv);
 
 $self = File::Copy::Recursive::Reduced->new();
 
+# bad args #
+
 $rv = $self->fcopy();
 ok(! defined $rv, "fcopy() returned undef when not provided correct number of arguments");
 
@@ -51,6 +53,8 @@ if ($self->{Link}) {
     }
 }
 
+# good args #
+
 {
     my $self = File::Copy::Recursive::Reduced->new({debug => 1});
     my $tdir = tempdir( CLEANUP => 1 );
@@ -59,24 +63,30 @@ if ($self->{Link}) {
     $stderr = capture_stderr { $rv = $self->fcopy($old, $new); };
     ok($rv, "fcopy() returned true value");
     like($stderr, qr/^from:.*?to:/, "fcopy(): got plausible debugging output");
+    ok(-f $new, "$new created");
 }
 
 {
+    my $self = File::Copy::Recursive::Reduced->new();
     my $tdir = tempdir( CLEANUP => 1 );
     my ($old, $new) = create_tfile($tdir);
     my $rv = $self->fcopy($old, $new);
     ok($rv, "fcopy() returned true value");
+    ok(-f $new, "$new created");
 }
 
 {
+    my $self = File::Copy::Recursive::Reduced->new();
     my $tdir = tempdir( CLEANUP => 1 );
     my ($old, $new) = create_tfile($tdir);
     my @rvs = $self->fcopy($old, $new);
     is_deeply( [ @rvs ], [ 1, 0, 0 ],
         "fcopy(): Got expected return values in list context");
+    ok(-f $new, "$new created");
 }
 
 {
+    my $self = File::Copy::Recursive::Reduced->new();
     my $tdir = tempdir( CLEANUP => 1 );
     my $old = File::Spec->catfile($tdir, 'old');
     open my $OUT, '>', $old or croak "Unable to open for writing";
@@ -86,7 +96,10 @@ if ($self->{Link}) {
     my $new = File::Spec->catfile($newpath, 'new');
     my $rv = $self->fcopy($old, $new);
     ok($rv, "fcopy() returned true value");
+    ok(-f $new, "$new created");
 }
+
+########## SUBROUTINES ##########
 
 sub create_tfile {
     my $tdir = shift;
