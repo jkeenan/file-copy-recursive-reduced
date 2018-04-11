@@ -69,7 +69,10 @@ if ($self->{Link}) {
     cmp_ok($new_mode, 'eq', $old_mode, "fcopy(): mode preserved: $old_mode to $new_mode");
 }
 
-{
+SKIP: {
+    skip 'mode preservation apparently not significant on Windows', 5
+        if ($^O eq 'MSWin32') ;
+
     my $self = File::Copy::Recursive::Reduced->new({ KeepMode => 0 });
     ok(! $self->{KeepMode}, "new(): KeepMode is turned off");
     my $tdir = tempdir( CLEANUP => 1 );
