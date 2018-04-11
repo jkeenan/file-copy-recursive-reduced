@@ -34,6 +34,8 @@ $rv = $self->fcopy('foo', 'foo');
 ok(! defined $rv, "fcopy() returned undef when provided 2 identical arguments");
 
 if ($self->{Link}) {
+    my $self = File::Copy::Recursive::Reduced->new({debug => 1});
+    ok($self->{debug}, "new(): debugging on");
     my $tdir = tempdir( CLEANUP => 1 );
     my ($old, $new) = create_tfile($tdir);
     my $rv = link($old, $new) or croak "Unable to link";
@@ -41,8 +43,12 @@ if ($self->{Link}) {
     my $stderr = capture_stderr { $rv = $self->fcopy($old, $new); };
     ok(! defined $rv,
         "fcopy() returned undef when provided arguments with identical dev and ino");
-    like($stderr, qr/\Q$old and $new are identical\E/,
-        "fcopy(): got expected warning when provided arguments with identical dev and ino");
+    SKIP: {
+        skip 'identical-dev-ino check not applicable on Windows', 1
+            if ($^O eq 'MSWin32') ;
+        like($stderr, qr/\Q$old and $new are identical\E/,
+            "fcopy(): got expected warning when provided arguments with identical dev and ino");
+    }
 }
 
 {
