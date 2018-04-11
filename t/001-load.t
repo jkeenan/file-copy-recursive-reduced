@@ -45,6 +45,11 @@ ok(defined $self, "new() returned defined value when KeepMode was turned off");
 isa_ok($self, 'File::Copy::Recursive::Reduced');
 ok(! $self->{KeepMode}, "KeepMode can be turned off");
 
+$self = File::Copy::Recursive::Reduced->new({ debug => 1 });
+ok(defined $self, "new() returned defined value when debug was turned off");
+isa_ok($self, 'File::Copy::Recursive::Reduced');
+ok($self->{debug}, "debug can be turned on");
+
 $self->{CopyLink} ? pass("System supports symlinks")   : pass("System does not support symlinks");
 $self->{Link}     ? pass("System supports hard links") : pass("System does not support hard links");
 is($self->{DirPerms}, '0777', "Permissions for directories to be created are set by default to 0777");

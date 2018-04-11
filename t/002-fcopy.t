@@ -41,8 +41,18 @@ if ($self->{Link}) {
     my $stderr = capture_stderr { $rv = $self->fcopy($old, $new); };
     ok(! defined $rv,
         "fcopy() returned undef when provided arguments with identical dev and ino");
-    like($stderr, qr/$old and $new are identical/,
+    like($stderr, qr/\Q$old and $new are identical\E/,
         "fcopy(): got expected warning when provided arguments with identical dev and ino");
+}
+
+{
+    my $self = File::Copy::Recursive::Reduced->new({debug => 1});
+    my $tdir = tempdir( CLEANUP => 1 );
+    my ($old, $new) = create_tfile($tdir);
+    my ($rv, $stderr);
+    $stderr = capture_stderr { $rv = $self->fcopy($old, $new); };
+    ok($rv, "fcopy() returned true value");
+    like($stderr, qr/^from:.*?to:/, "fcopy(): got plausible debugging output");
 }
 
 {

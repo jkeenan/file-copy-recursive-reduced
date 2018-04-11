@@ -111,7 +111,7 @@ sub new {
         unless ref($args) eq 'HASH';
 
     my $data = {};
-    my %valid_args = map {$_ => 1} qw( PFSCheck KeepMode );
+    my %valid_args = map {$_ => 1} qw( PFSCheck KeepMode debug );
     for my $k (keys %{$args}) {
         croak "'$k' is not a valid argument to new()" unless $valid_args{$k};
         $data->{$k} = $args->{$k};
@@ -204,8 +204,14 @@ sub fcopy {
 #        symlink( $target, $new ) or return;
 #    }
 #    else {
-        unless ($buf) { copy($from, $to) or return; }
-        else          { copy($from, $to, $buf) or return; }
+        unless ($buf) {
+            if ($self->{debug}) { print STDERR "from: $from\tto: $to\n"; }
+            copy($from, $to) or return;
+        }
+        else          {
+            if ($self->{debug}) { print STDERR "from: $from\tto: $to\tbuf: $buf\n"; }
+            copy($from, $to, $buf) or return;
+        }
 
         my @base_file = File::Spec->splitpath( $from );
         my $mode_trg = -d $to ? File::Spec->catfile( $to, $base_file[$#base_file] ) : $to;
