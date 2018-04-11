@@ -39,7 +39,7 @@ if ($self->{Link}) {
     my $self = File::Copy::Recursive::Reduced->new({debug => 1});
     ok($self->{debug}, "new(): debugging on");
     my $tdir = tempdir( CLEANUP => 1 );
-    my ($old, $new) = create_tfile($tdir);
+    my ($old, $new) = create_tfile_and_new_path($tdir);
     my $rv = link($old, $new) or croak "Unable to link";
     ok($rv, "Able to hard link $old and $new");
     my $stderr = capture_stderr { $rv = $self->fcopy($old, $new); };
@@ -58,7 +58,7 @@ if ($self->{Link}) {
 {
     my $self = File::Copy::Recursive::Reduced->new({debug => 1});
     my $tdir = tempdir( CLEANUP => 1 );
-    my ($old, $new) = create_tfile($tdir);
+    my ($old, $new) = create_tfile_and_new_path($tdir);
     my ($rv, $stderr);
     my $old_mode = get_mode($old);
     $stderr = capture_stderr { $rv = $self->fcopy($old, $new); };
@@ -73,7 +73,7 @@ if ($self->{Link}) {
     my $self = File::Copy::Recursive::Reduced->new({ KeepMode => 0 });
     ok(! $self->{KeepMode}, "new(): KeepMode is turned off");
     my $tdir = tempdir( CLEANUP => 1 );
-    my ($old, $new) = create_tfile($tdir);
+    my ($old, $new) = create_tfile_and_new_path($tdir);
     my $cnt = chmod 0700, $old;
     ok($cnt, "chmod on $old");
     my $old_mode = get_mode($old);
@@ -89,7 +89,7 @@ if ($self->{Link}) {
     my $self = File::Copy::Recursive::Reduced->new({});
     ok($self->{KeepMode}, "new(): KeepMode is on");
     my $tdir = tempdir( CLEANUP => 1 );
-    my ($old, $new) = create_tfile($tdir);
+    my ($old, $new) = create_tfile_and_new_path($tdir);
     my $cnt = chmod 0700, $old;
     ok($cnt, "chmod on $old");
     my $old_mode = get_mode($old);
@@ -104,7 +104,7 @@ if ($self->{Link}) {
 {
     my $self = File::Copy::Recursive::Reduced->new();
     my $tdir = tempdir( CLEANUP => 1 );
-    my ($old, $new) = create_tfile($tdir);
+    my ($old, $new) = create_tfile_and_new_path($tdir);
     my @rvs = $self->fcopy($old, $new);
     is_deeply( [ @rvs ], [ 1, 0, 0 ],
         "fcopy(): Got expected return values in list context");
@@ -114,11 +114,7 @@ if ($self->{Link}) {
 {
     my $self = File::Copy::Recursive::Reduced->new();
     my $tdir = tempdir( CLEANUP => 1 );
-    my $old = File::Spec->catfile($tdir, 'old');
-    open my $OUT, '>', $old or croak "Unable to open for writing";
-    binmode $OUT;
-    print $OUT "\n";
-    close $OUT or croak "Unable to close after writing";
+    my $old = create_tfile($tdir);
     my $newpath = File::Spec->catdir($tdir, 'newpath');
     my $new = File::Spec->catfile($newpath, 'new');
     my $buffer = (1024 * 1024 * 2) + 1;
@@ -133,11 +129,17 @@ if ($self->{Link}) {
 sub create_tfile {
     my $tdir = shift;
     my $old = File::Spec->catfile($tdir, 'old');
-    my $new = File::Spec->catfile($tdir, 'new');
     open my $OUT, '>', $old or croak "Unable to open for writing";
     binmode $OUT;
     print $OUT "\n";
     close $OUT or croak "Unable to close after writing";
+    return $old;
+}
+
+sub create_tfile_and_new_path {
+    my $tdir = shift;
+    my $old = create_tfile($tdir);
+    my $new = File::Spec->catfile($tdir, 'new');
     return ($old, $new);
 }
 
