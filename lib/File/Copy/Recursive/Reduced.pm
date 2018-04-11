@@ -284,7 +284,7 @@ sub pathmk {
 
 sub _samecheck {
     my ($self, $from, $to) = @_;
-    return 1 if $^O eq 'MSWin32';    # for consistency with FCR
+    #    return 1 if $^O eq 'MSWin32';    # for consistency with FCR
     return if !defined $from || !defined $to;
     return if $from eq $to;
 
