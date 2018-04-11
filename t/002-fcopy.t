@@ -60,6 +60,7 @@ if ($self->{Link}) {
 # good args #
 
 {
+    note("Basic test of fcopy()");
     my $self = File::Copy::Recursive::Reduced->new({debug => 1});
     my $tdir = tempdir( CLEANUP => 1 );
     my ($old, $new) = create_tfile_and_new_path($tdir);
@@ -77,6 +78,7 @@ SKIP: {
     skip 'mode preservation apparently not significant on Windows', 5
         if ($^O eq 'MSWin32') ;
 
+    note("Test mode preservation turned off");
     my $self = File::Copy::Recursive::Reduced->new({ KeepMode => 0 });
     ok(! $self->{KeepMode}, "new(): KeepMode is turned off");
     my $tdir = tempdir( CLEANUP => 1 );
@@ -93,6 +95,7 @@ SKIP: {
 }
 
 {
+    note("Test default mode preservation");
     my $self = File::Copy::Recursive::Reduced->new({});
     ok($self->{KeepMode}, "new(): KeepMode is on");
     my $tdir = tempdir( CLEANUP => 1 );
@@ -109,6 +112,24 @@ SKIP: {
 }
 
 {
+    note("Test whether method chaining works");
+    my $tdir = tempdir( CLEANUP => 1 );
+    my ($old, $new) = create_tfile_and_new_path($tdir);
+    my $cnt = chmod 0700, $old;
+    ok($cnt, "chmod on $old");
+    my $old_mode = get_mode($old);
+
+    my $rv;
+    ok($rv = File::Copy::Recursive::Reduced->new({})->fcopy($old, $new),
+        "new() and fcopy() returned true value when chained");
+    ok(-f $new, "$new created");
+    my $new_mode = get_mode($new);
+    cmp_ok($new_mode, 'eq', $old_mode,
+        "fcopy(): With KeepMode on, mode preserved from $old_mode to $new_mode");
+}
+
+{
+    note("Test calling fcopy() in list context");
     my $self = File::Copy::Recursive::Reduced->new();
     my $tdir = tempdir( CLEANUP => 1 );
     my ($old, $new) = create_tfile_and_new_path($tdir);
@@ -119,6 +140,7 @@ SKIP: {
 }
 
 {
+    note("Test calling fcopy() with buffer-size third argument");
     my $self = File::Copy::Recursive::Reduced->new();
     my $tdir = tempdir( CLEANUP => 1 );
     my $old = create_tfile($tdir);
@@ -132,6 +154,7 @@ SKIP: {
 }
 
 {
+    note("Test calling fcopy() with buffer-size third argument with debug");
     my $self = File::Copy::Recursive::Reduced->new({ debug => 1 });
     my $tdir = tempdir( CLEANUP => 1 );
     my $old = create_tfile($tdir);
@@ -149,6 +172,7 @@ SKIP: {
     skip 'symlinks not available on this platform', 4
         unless $self->{CopyLink};
 
+    note("Test calling fcopy() on symlinks");
     my ($self, $tdir, $old, $new, $symlink, $rv);
     $self = File::Copy::Recursive::Reduced->new();
     $tdir = tempdir( CLEANUP => 1 );
@@ -202,8 +226,9 @@ SKIP: {
     );
 
     # This is the test that fails on FreeBSD
+    # https://rt.cpan.org/Ticket/Display.html?id=123964
     $rv = $self->fcopy( "$tmpd/orig", "$tmpd/fcopy" );
-    ok(!$rv, "fcopy() returns false if source is a directory");
+    ok(!$rv, "RTC 123964: fcopy() returns false if source is a directory");
 }
 
 {
