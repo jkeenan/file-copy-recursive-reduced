@@ -224,6 +224,9 @@ sub fcopy {
         unlink $to if -l $to;
         symlink( $target, $to ) or return;
     }
+    elsif ( -d $from && -f $to ) {
+        return;
+    }
     else {
         unless ($buf) {
             if ($self->{debug}) { print STDERR "from: $from\tto: $to\n"; }

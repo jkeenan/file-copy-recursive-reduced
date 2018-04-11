@@ -201,6 +201,7 @@ SKIP: {
         "fcopy() defaults as expected when target does exist"
     );
 
+    # This is the test that fails on FreeBSD
     $rv = $self->fcopy( "$tmpd/orig", "$tmpd/fcopy" );
     ok(!$rv, "fcopy() returns false if source is a directory");
 }
