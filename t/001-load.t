@@ -24,6 +24,19 @@ my ($self, $max_depth);
         "new(): got expected error message for invalid argument");
 }
 
+{
+    local $@;
+    $max_depth = 0;
+    eval { $self = File::Copy::Recursive::Reduced->new({ MaxDepth => $max_depth }); };
+    like($@, qr/MaxDepth, if provided, must be positive integer/,
+        "new(): got expected error message for MaxDepth not a positive integer");
+
+    $max_depth = 'foo';
+    eval { $self = File::Copy::Recursive::Reduced->new({ MaxDepth => $max_depth }); };
+    like($@, qr/MaxDepth, if provided, must be positive integer/,
+        "new(): got expected error message for MaxDepth not a positive integer");
+}
+    
 # good args #
 
 $self = File::Copy::Recursive::Reduced->new();

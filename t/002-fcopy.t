@@ -258,7 +258,8 @@ SKIP: {
 
 sub create_tfile {
     my $tdir = shift;
-    my $old = File::Spec->catfile($tdir, 'old');
+    my $filename = shift || 'old';
+    my $old = File::Spec->catfile($tdir, $filename);
     open my $OUT, '>', $old or croak "Unable to open for writing";
     binmode $OUT;
     print $OUT "\n";
