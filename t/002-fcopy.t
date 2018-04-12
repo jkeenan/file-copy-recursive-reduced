@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More qw(no_plan); # tests =>  2;
+use Test::More tests => 49;
 use Carp;
 use Capture::Tiny qw(capture_stdout capture_stderr);
 use File::Path qw(mkpath);
@@ -12,6 +12,12 @@ use File::Temp qw(tempfile tempdir);
 use Path::Tiny;
 use lib qw( t/lib );
 use MockHomeDir;
+use Helper ( qw|
+    create_tfile
+    create_tfile_and_new_path
+    get_mode
+    get_fresh_tmp_dir
+|);
 
 BEGIN { use_ok( 'File::Copy::Recursive::Reduced' ); }
 
@@ -251,68 +257,5 @@ SKIP: {
         $self->fcopy($sample_history_file, $history_file);
         ok( -f $history_file, "copied sample old history file to config directory");
     }
-}
-
-
-########## SUBROUTINES ##########
-
-sub create_tfile {
-    my $tdir = shift;
-    my $filename = shift || 'old';
-    my $old = File::Spec->catfile($tdir, $filename);
-    open my $OUT, '>', $old or croak "Unable to open for writing";
-    binmode $OUT;
-    print $OUT "\n";
-    close $OUT or croak "Unable to close after writing";
-    return $old;
-}
-
-sub create_tfile_and_new_path {
-    my $tdir = shift;
-    my $old = create_tfile($tdir);
-    my $new = File::Spec->catfile($tdir, 'new');
-    return ($old, $new);
-}
-
-sub get_mode {
-    my $file = shift;
-    return sprintf("%04o" => ((stat($file))[2] & 07777));
-}
-
-sub get_fresh_tmp_dir {
-    # Adapted from FCR t/01.legacy.t
-    my $self = shift;
-    my $tmpd = tempdir( CLEANUP => 1 );
-    for my $dir ( _get_dirs($tmpd) ) {
-        my @created = mkpath($dir, { mode => 0711 });
-        croak "Unable to create directory $dir for testing" unless @created;
-
-        path("$dir/empty")->spew("");
-        path("$dir/data")->spew("oh hai\n$dir");
-        path("$dir/data_tnl")->spew("oh hai\n$dir\n");
-        if ($self->{CopyLink}) {
-            symlink( "data",    "$dir/symlink" );
-            symlink( "noexist", "$dir/symlink-broken" );
-            symlink( "..",      "$dir/symlink-loopy" );
-        }
-    }
-    return $tmpd;
-}
-
-sub _get_dirs {
-    # Adapted from FCR t/01.legacy.t
-    my $tempd = shift;
-    my @dirs = (
-        [ qw| orig | ],
-        [ qw| orig foo | ],
-        [ qw| orig foo bar | ],
-        [ qw| orig foo baz | ],
-        [ qw| orig foo bar bletch | ],
-    );
-    my @catdirs = ();
-    for my $set (@dirs) {
-        push @catdirs, File::Spec->catdir($tempd, @{$set});
-    }
-    return @catdirs;
 }
 

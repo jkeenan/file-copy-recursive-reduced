@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More qw(no_plan); # tests =>  2;
+use Test::More tests => 26;
 
 BEGIN { use_ok( 'File::Copy::Recursive::Reduced' ); }
 
