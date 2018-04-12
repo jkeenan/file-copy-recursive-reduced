@@ -15,14 +15,10 @@ use Cwd ();
 our $VERSION = '0.001';
 
 #$MaxDepth = 0;
-#$CPRFComp = 0;
 #$RemvBase = 0;
 #$NoFtlPth = 0;
 #$ForcePth = 0;
-#$RMTrgFil = 0;
-#$RMTrgDir = 0;
 #$CondCopy = {};
-#$BdTrgWrn = 0;
 #$SkipFlop = 0;
 
 =head1 NAME
@@ -104,6 +100,11 @@ On by default; provide a Perl-false value to turn off.
 
 On by default; provide a Perl-false value to turn off.
 
+=item * C<MaxDepth>
+
+Off by default; provide a positive integer to set the maximum depth to which a directory structure
+is recursed during C<dircopy()>.
+
 =item * C<debug>
 
 Off by default; provide a Perl-true value to turn off.
@@ -129,7 +130,7 @@ sub new {
         unless ref($args) eq 'HASH';
 
     my $data = {};
-    my %valid_args = map {$_ => 1} qw( PFSCheck KeepMode debug );
+    my %valid_args = map {$_ => 1} qw( PFSCheck KeepMode MaxDepth debug );
     for my $k (keys %{$args}) {
         croak "'$k' is not a valid argument to new()" unless $valid_args{$k};
         $data->{$k} = $args->{$k};
@@ -178,7 +179,8 @@ F<perldoc File::Copy> for discussion of those arguments.
 
 Scalar context: returns C<1> upon success; C<0> upon failure.
 
-List context: returns a 3-element list: C<(1,0,0)> upon success; C<0,0,0)> upon failure.  TODO: Verify!
+List context: returns a 3-element list: C<(1,0,0)> upon success; C<0,0,0)>
+upon failure.
 
 =item * Comments
 
@@ -186,8 +188,8 @@ List context: returns a 3-element list: C<(1,0,0)> upon success; C<0,0,0)> upon 
 
 =item *
 
-Unlike FCR's C<fcopy()>, this method provides no functionality to remove the
-original file before copying.
+Unlike FCR's C<fcopy()>, this method provides no functionality to remove an
+already existing target file before copying.
 
 =item * TODO
 
@@ -255,19 +257,177 @@ sub fcopy {
 
 =item * Purpose
 
+Recursively traverse a directory and recursively copy it to a new directory.
+
 =item * Arguments
 
-    $self->dircopy($orig,$new[,$buf]) or die $!;
+Scalar context:
+
+    my $num_of_files_and_dirs = $self->dircopy($orig,$new[,$buf]) or die $!;
+
+List context:
+
+    my ($num_of_files_and_dirs,$num_of_dirs,$depth_traversed) =
+        $self->dircopy($orig,$new[,$buf]) or die $!;
 
 =item * Return Value
 
+Scalar context:  Returns the number of files and directories copied.
+
+List context:  Returns a 3-element list:
+
+=over 4
+
+=item 1 Number of files and directories copied;
+
+=item 2 Number of directories (only) copied;
+
+=item 3 Depth level traversed.
+
+=back
+
 =item * Comment
+
+=over 4
+
+=item *
+
+The C<dircopy()> method creates intermediate directories as needed.  By
+default it attempts to preserve the modes of all files and directories.  In
+addition, by default it copies all the way down into the directory.
+
+Error conditions: TK
+
+=item *
+
+Unlike FCR's C<dircopy()>, this method provides no functionality to remove
+already existing directories or files before copying (C<$RMTrgDir>).
+
+=item *
+
+Unlike FCR's C<dircopy()>, this method provides no functionality to continue
+on regardless of the failure to copy an individual directory or file (for
+instance, because of inadequate permissions) (C<$SkipFlob>).
+
 
 =back
 
 =cut
 
-sub dircopy {}
+#We can probably eliminate C<$CPRFComp>.
+#
+#B<Existing documentation:> You can set the maximum depth a directory structure
+#is recursed by setting: C<$File::Copy::Recursive::MaxDepth> to a whole number
+#greater than C<0>.
+#
+#B<Comment:> We can probably eliminate C<$MaxDepth>.
+#
+#=cut
+
+sub dircopy {
+    return if @_ < 3 or @_ > 4;
+    my ($self, $from, $to, $buf) = @_;
+#    my $globstar = 0;
+#    my $_zero    = $from;
+#    my $_one     = $to;
+#    if ( substr( $_zero, ( 1 * -1 ), 1 ) eq '*' ) {
+#        $globstar = 1;
+#        $_zero = substr( $_zero, 0, ( length($_zero) - 1 ) );
+#    }
+#
+#    $self->_samecheck->( $_zero, $to ) or return;
+#    if ( !-d $_zero || ( -e $to && !-d $to ) ) {
+#        $! = 20;
+#        return;
+#    }
+#
+#    if ( !-d $to ) {
+##        pathmk( $to, $NoFtlPth ) or return;
+#        $self->pathmk($to) or return;
+#    }
+#    my $baseend = $_one;
+#    my $level   = 0;
+#    my $filen   = 0;
+#    my $dirn    = 0;
+#
+#    my $recurs;    #must be my()ed before sub {} since it calls itself
+#    $recurs = sub {
+    ##        my ( $str, $end, $buf ) = @_;
+#        my ( $self, $str, $end, $buf ) = @_;
+#        $filen++ if $end eq $baseend;
+#        $dirn++  if $end eq $baseend;
+#
+#        $DirPerms = oct($DirPerms) if substr( $DirPerms, 0, 1 ) eq '0';
+    #    my $DirPerms = oct($self->{DirPerms}) if substr( $self->{DirPerms}, 0, 1 ) eq '0';
+#        mkdir( $end, $DirPerms ) or return if !-d $end;
+#        if ( $self->{MaxDepth} && $self->{MaxDepth} =~ m/^\d+$/ && $level >= $self->{MaxDepth} ) {
+#            chmod scalar( ( stat($str) )[2] ), $end if $self->{KeepMode};
+#            return ( $filen, $dirn, $level ) if wantarray;
+#            return $filen;
+#        }
+#
+#        $level++;
+#
+#        my @files;
+#        if ( $] < 5.006 ) {
+#            opendir( STR_DH, $str ) or return;
+#            @files = grep( $_ ne '.' && $_ ne '..', readdir(STR_DH) );
+#            closedir STR_DH;
+#        }
+#        else {
+#            opendir( my $str_dh, $str ) or return;
+#            @files = grep( $_ ne '.' && $_ ne '..', readdir($str_dh) );
+#            closedir $str_dh;
+#        }
+#
+#        for my $file (@files) {
+#            my ($file_ut) = $file =~ m{ (.*) }xms;
+#            my $org = File::Spec->catfile( $str, $file_ut );
+#            my $new = File::Spec->catfile( $end, $file_ut );
+#            if ( -l $org && $self->{CopyLink} ) {
+#                my $target = readlink($org);
+#                # FCR: mass-untaint is OK since we have to allow what the file system does
+#                ($target) = $target =~ m/(.*)/;
+#                carp "Copying a symlink ($org) whose target does not exist"
+#                  if !-e $target
+#                unlink $new if -l $new;
+#                symlink( $target, $new ) or return;
+#            }
+#            elsif ( -d $org ) {
+#                my $rc;
+#                if ( !-w $org && $self->{KeepMode} ) {
+#                    local $self->{KeepMode} = 0;
+#                    carp "Copying readonly directory ($org); mode of its contents may not be preserved.";
+#                    $rc = $recurs->( $org, $new, $buf ) if defined $buf;
+#                    $rc = $recurs->( $org, $new ) if !defined $buf;
+#                    chmod scalar( ( stat($org) )[2] ), $new;
+#                }
+#                else {
+#                    $rc = $recurs->( $org, $new, $buf ) if defined $buf;
+#                    $rc = $recurs->( $org, $new ) if !defined $buf;
+#                }
+#                return if ( !$rc );
+#                $filen++;
+#                $dirn++;
+#            }
+#            else {
+#                if ( $ok_todo_asper_condcopy->($org) ) {
+#                    fcopy( $org, $new, $buf ) or return if defined $buf;
+#                    fcopy( $org, $new ) or return if !defined $buf;
+#                    chmod scalar( ( stat($org) )[2] ), $new if $self->{KeepMode};
+#                    $filen++;
+#                }
+#            }
+#        }
+#        $level--;
+#        chmod scalar( ( stat($str) )[2] ), $end if $self->{KeepMode};
+#        1;
+#
+#    }; # END definition of coderef $recurs
+#
+#    $recurs->( $_zero, $_one, $_[2] ) or return;
+#    return wantarray ? ( $filen, $dirn, $level ) : $filen;
+}
 
 # pathmk() currently provided only because it is called from within fcopy().
 # It will be publicly documented only when need for its use in toolchain
@@ -396,9 +556,10 @@ sub _samecheck {
 #            my $new = File::Spec->catfile( $end, $file_ut );
 #            if ( -l $org && $CopyLink ) {
 #                my $target = readlink($org);
-#                ($target) = $target =~ m/(.*)/;    # mass-untaint is OK since we have to allow what the file system does
+#                # FCR: mass-untaint is OK since we have to allow what the file system does
+#                ($target) = $target =~ m/(.*)/;
 #                carp "Copying a symlink ($org) whose target does not exist"
-#                  if !-e $target && $BdTrgWrn;
+#                  if !-e $target
 #                unlink $new if -l $new;
 #                symlink( $target, $new ) or return;
 #            }
@@ -449,34 +610,6 @@ sub _samecheck {
 #
 #    $recurs->( $_zero, $_one, $_[2] ) or return;
 #    return wantarray ? ( $filen, $dirn, $level ) : $filen;
-#}
-#
-#sub pathmk {
-#    my ( $vol, $dir, $file ) = File::Spec->splitpath( shift() );
-#    my $nofatal = shift;
-#
-#    $DirPerms = oct($DirPerms) if substr( $DirPerms, 0, 1 ) eq '0';
-#
-#    if ( defined($dir) ) {
-#        my (@dirs) = File::Spec->splitdir($dir);
-#
-#        for ( my $i = 0; $i < scalar(@dirs); $i++ ) {
-#            my $newdir = File::Spec->catdir( @dirs[ 0 .. $i ] );
-#            my $newpth = File::Spec->catpath( $vol, $newdir, "" );
-#
-#            mkdir( $newpth, $DirPerms ) or return if !-d $newpth && !$nofatal;
-#            mkdir( $newpth, $DirPerms ) if !-d $newpth && $nofatal;
-#        }
-#    }
-#
-#    if ( defined($file) ) {
-#        my $newpth = File::Spec->catpath( $vol, $dir, $file );
-#
-#        mkdir( $newpth, $DirPerms ) or return if !-d $newpth && !$nofatal;
-#        mkdir( $newpth, $DirPerms ) if !-d $newpth && $nofatal;
-#    }
-#
-#    1;
 #}
 #
 #sub pathrm {

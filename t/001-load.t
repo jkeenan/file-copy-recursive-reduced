@@ -7,7 +7,7 @@ use Test::More qw(no_plan); # tests =>  2;
 
 BEGIN { use_ok( 'File::Copy::Recursive::Reduced' ); }
 
-my ($self, );
+my ($self, $max_depth);
 # bad args #
 {
     local $@;
@@ -45,6 +45,13 @@ ok(defined $self, "new() returned defined value when KeepMode was turned off");
 isa_ok($self, 'File::Copy::Recursive::Reduced');
 ok(! $self->{KeepMode}, "KeepMode can be turned off");
 
+$max_depth = 20;
+$self = File::Copy::Recursive::Reduced->new({ MaxDepth => $max_depth });
+ok(defined $self, "new() returned defined value when MaxDepth was turned on");
+isa_ok($self, 'File::Copy::Recursive::Reduced');
+ok($self->{MaxDepth}, "MaxDepth can be turned on");
+cmp_ok($self->{MaxDepth}, '==', $max_depth, "new(): MaxDepth set to $max_depth");
+
 $self = File::Copy::Recursive::Reduced->new({ debug => 1 });
 ok(defined $self, "new() returned defined value when debug was turned off");
 isa_ok($self, 'File::Copy::Recursive::Reduced');
@@ -52,4 +59,5 @@ ok($self->{debug}, "debug can be turned on");
 
 $self->{CopyLink} ? pass("System supports symlinks")   : pass("System does not support symlinks");
 $self->{Link}     ? pass("System supports hard links") : pass("System does not support hard links");
-is($self->{DirPerms}, '0777', "Permissions for directories to be created are set by default to 0777");
+is($self->{DirPerms}, '0777',
+    "Permissions for directories to be created are set by default to 0777");
