@@ -7,9 +7,8 @@ LICENSE
 Makefile.PL
 MANIFEST			This list of files
 README
-t/001-load.t
-t/002-fcopy.t
-t/003-dircopy.t
+t/001-fcopy.t
+t/002-dircopy.t
 t/lib/Helper.pm
 t/lib/MockHomeDir.pm
 Todo
