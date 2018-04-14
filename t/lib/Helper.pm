@@ -52,7 +52,6 @@ sub create_tsubdir {
 
 sub get_fresh_tmp_dir {
     # Adapted from FCR t/01.legacy.t
-    my $self = shift;
     my $tmpd = tempdir( CLEANUP => 1 );
     for my $dir ( _get_dirs($tmpd) ) {
         my @created = mkpath($dir, { mode => 0711 });
@@ -61,7 +60,7 @@ sub get_fresh_tmp_dir {
         path("$dir/empty")->spew("");
         path("$dir/data")->spew("oh hai\n$dir");
         path("$dir/data_tnl")->spew("oh hai\n$dir\n");
-        if ($self->{CopyLink}) {
+        if ($File::Copy::Recursive::CopyLink) {
             symlink( "data",    "$dir/symlink" );
             symlink( "noexist", "$dir/symlink-broken" );
             symlink( "..",      "$dir/symlink-loopy" );
