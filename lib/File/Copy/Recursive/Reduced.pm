@@ -178,6 +178,8 @@ sub fcopy {
 sub pathmk {
     my ( $vol, $dir, $file ) = File::Spec->splitpath( shift() );
 
+    # TODO: Exploration whether $dir can be undef at this point.
+    # If possible, then we should probably return immediately.
     if ( defined($dir) ) {
         my (@dirs) = File::Spec->splitdir($dir);
 
@@ -189,6 +191,8 @@ sub pathmk {
         }
     }
 
+    # TODO: Exploration whether $file can be undef at this point.
+    # If possible, then we should probably return immediately.
     if ( defined($file) ) {
         my $newpth = File::Spec->catpath( $vol, $dir, $file );
         mkdir( $newpth );
