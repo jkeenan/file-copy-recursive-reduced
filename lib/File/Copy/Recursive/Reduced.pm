@@ -7,10 +7,10 @@ BEGIN {
 }
 use warnings;
 
-use Carp;
 use File::Copy;
+use File::Find;
+use File::Path qw( mkpath );
 use File::Spec;
-use Cwd ();
 
 our $VERSION = '0.001';
 
@@ -20,11 +20,11 @@ File::Copy::Recursive::Reduced - Recursive copying of files and directories with
 
 =head1 SYNOPSIS
 
-    use File::Copy::Recursive::Reduced;
+    use File::Copy::Recursive::Reduced qw(fcopy dircopy);
 
-    my $self = File::Copy::Recursive::Reduced->new({});
-    $self->fcopy($orig,$new[,$buf]) or die $!;
-    $self->dircopy($orig,$new[,$buf]) or die $!;
+    fcopy($orig,$new) or die $!;
+
+    dircopy($orig,$new) or die $!;
 
 =head1 DESCRIPTION
 
@@ -38,10 +38,11 @@ described as being part of the Perl toolchain.
 =head2 Rationale
 
 F<File::Copy::Recursive> (hereinafter referred to as B<FCR>) is heavily used
-in other CPAN libraries.  Out of over 30,000 other CPAN distributions, it
-ranks, by one estimate, as the 129th highest distribution in terms of number
-of direct and indirect reverse dependencies.  Hence, it has to work correctly
-and be installable on all operating systems where Perl is well supported.
+in other CPAN libraries.  Out of over 30,000 other CPAN distributions studied
+in early 2018, it ranks in one calculation as the 129th highest distribution
+in terms of its total direct and indirect reverse dependencies.  Hence, it has
+to work correctly and be installable on all operating systems where Perl is
+well supported.
 
 However, as of the time of creation of F<File::Copy::Recursive::Reduced>
 (April 2018), FCR is failing to pass its tests against either Perl 5.26 or
@@ -56,94 +57,18 @@ for certain problems but FCR's author has not yet applied them.  Even if,
 however, those patches are applied, FCR may not install on certain platforms.
 
 F<File::Copy::Recursive::Reduced> (hereinafter referred to as B<FCR2>) is
-intended to provide little more than a minimal subset of FCR's functionality,
-that is, just enough to get the Perl toolchain working on the platforms where
-FCR is currently failing.  Methods will be added to FCR2 only insofar as
-investigation shows that they can replace usage of FCR functions in Toolchain
-modules.  No attempt will be made to reproduce all the functionality currently
-provided or claimed to be provided by FCR.
+intended to provide little more than a minimal subset of FCR's functionality
+-- just enough to get the Perl toolchain working on the platforms where FCR is
+currently failing.  Functions will be added to FCR2 only insofar as
+investigation shows that they can replace usage of FCR functions in toolchain
+and other heavily used modules.  No attempt will be made to reproduce all the
+functionality currently provided or claimed to be provided by FCR.
 
-=head1 METHODS
+=head1 SUBROUTINES
 
-The current version of FCR2 provides a constructor and two public methods
-partially equivalent to the similarly named functions exported by FCR.
-
-=head2 C<new()>
-
-=over 4
-
-=item * Purpose
-
-File::Copy::Recursive::Reduced constructor.
-
-=item * Arguments
-
-    $self = File::Copy::Recursive::Reduced->new({});
-
-If an argument is provided, it must be a hash reference.  Valid keys for that
-hashref are:
-
-=over 4
-
-=item * C<PFSCheck>
-
-On by default; provide a Perl-false value to turn off.
-
-=item * C<KeepMode>
-
-On by default; provide a Perl-false value to turn off.
-
-=item * C<MaxDepth>
-
-Off by default; provide a positive integer to set the maximum depth to which a directory structure
-is recursed during C<dircopy()>.
-
-=item * C<debug>
-
-Off by default; provide a Perl-true value to turn off.
-
-=back
-
-=item * Return Value
-
-File::Copy::Recursive::Reduced object.
-
-=item * Comment
-
-=back
-
-=cut
-
-sub new {
-    my ($class, $args) = @_;
-    unless (defined($args)) {
-        $args = {};
-    }
-    croak "Argument to constructor must be hashref"
-        unless ref($args) eq 'HASH';
-
-    my $data = {};
-    my %valid_args = map {$_ => 1} qw( PFSCheck KeepMode MaxDepth debug );
-    croak "MaxDepth, if provided, must be positive integer"
-        if (
-            exists $args->{MaxDepth} and
-            !(
-                $args->{MaxDepth} =~ m/^\d+$/ and
-                $args->{MaxDepth} > 0
-            )
-        );
-    for my $k (keys %{$args}) {
-        croak "'$k' is not a valid argument to new()" unless $valid_args{$k};
-        $data->{$k} = $args->{$k};
-    }
-    $data->{PFSCheck} = 1 unless exists $data->{PFSCheck};
-    $data->{KeepMode} = 1 unless exists $data->{KeepMode};
-    $data->{CopyLink} = eval { local $SIG{'__DIE__'}; symlink '', ''; 1 } || 0;
-    $data->{Link}     = eval { local $SIG{'__DIE__'}; link    '', ''; 1 } || 0;
-    $data->{DirPerms} = '0777';
-
-    return bless $data, $class;
-}
+The current version of FCR2 provides two exportable and publicly supported
+subroutines partially equivalent to the similarly named subroutines exported
+by FCR.
 
 =head2 C<fcopy()>
 
@@ -151,56 +76,38 @@ sub new {
 
 =item * Purpose
 
-Copy a file to a new location, recursively creating directories as needed.
+A stripped-down replacement for C<File::Copy::Recursive::fcopy()>.
+
+Copies a file to a new location, recursively creating directories as needed.
 Does not copy directories.  Unlike C<File::Copy::copy()>, C<fcopy()> attempts
 to preserve the mode of the original file.
 
 =item * Arguments
 
-    $self->fcopy($orig,$new[,$buf]) or die $!;
+    fcopy($orig, $new) or die $!;
 
-Takes three arguments, the first two required, the third optional.
-
-=over 4
-
-=item 1 The file to be copied.
-
-=item 2 Path where copy is to be created.
-
-=item 3 Buffer size:  the number of bytes from the first file which will be
-held in memory at any given time before being written to the second file.
-
-=back
-
-Since C<fcopy()> internally uses C<File::Copy::copy()> to perform the copying,
-the arguments are subject to the same qualifications as that function.  Call
-F<perldoc File::Copy> for discussion of those arguments.
+Two required arguments: the file to be copied and the location where it is to
+be copied.
 
 =item * Return Value
 
-Scalar context: returns C<1> upon success; C<0> upon failure.
+Returns C<1> upon success; C<0> upon failure.  Returns an undefined value if,
+for example, function cannot validate arguments.
 
-List context: returns a 3-element list: C<(1,0,0)> upon success; C<0,0,0)>
-upon failure.
+=item * Comment
 
-=item * Comments
+Since C<fcopy()> internally uses C<File::Copy::copy()> to perform the copying,
+the arguments are subject to the same qualifications as that function's
+arguments.  Call F<perldoc File::Copy> for discussion of those arguments.
+
+=item * Restrictions
 
 =over 4
 
 =item *
 
-Unlike FCR's C<fcopy()>, this method provides no functionality to remove an
-already existing target file before copying.
-
-=item * TODO
-
-=over 4
-
-=item * Decide status of C<$File::Copy::Recursive::BdTrgWrn>.
-
-At present, I'm not implementing it -- at least not for C<fcopy()>.
-
-=back
+Does not currently handle copying of symlinks, though it may do so in a future
+version.
 
 =back
 
@@ -209,237 +116,28 @@ At present, I'm not implementing it -- at least not for C<fcopy()>.
 =cut
 
 sub fcopy {
-    return if @_ < 3 or @_ > 4;
-    my ($self, $from, $to, $buf) = @_;
-    return unless $self->_samecheck($from, $to);
+    return if @_ != 2;
+    my ($from, $to) = @_;
+    return unless _samecheck($from, $to);
     my ( $volm, $path ) = File::Spec->splitpath($to);
     if ( $path && !-d $path ) {
-        $self->pathmk(File::Spec->catpath($volm, $path, ''));
+        pathmk(File::Spec->catpath($volm, $path, ''));
     }
-    if ( -l $from && $self->{CopyLink} ) {
-        my $target = readlink($from);
-        # FCR: mass-untaint is OK since we have to allow what the file system does
-        ($target) = $target =~ m/(.*)/;
-        carp "Copying a symlink ($from) whose target does not exist"
-            if !-e $target;
-        # It's not clear how to exercise the TRUE branch in the following
-        # statement.
-        unlink $to if -l $to;
-        symlink( $target, $to ) or return;
-    }
-    elsif ( -d $from && -f $to ) {
-        return;
-    }
+    if (-l $from) { return; }
+    elsif (-d $from && -f $to) { return; }
     else {
-        unless ($buf) {
-            if ($self->{debug}) { print STDERR "from: $from\tto: $to\n"; }
-            copy($from, $to) or return;
-        }
-        else          {
-            if ($self->{debug}) { print STDERR "from: $from\tto: $to\tbuf: $buf\n"; }
-            copy($from, $to, $buf) or return;
-        }
+        copy($from, $to) or return;
 
         my @base_file = File::Spec->splitpath( $from );
         my $mode_trg = -d $to ? File::Spec->catfile( $to, $base_file[$#base_file] ) : $to;
 
-        chmod scalar((stat($from))[2]), $mode_trg if $self->{KeepMode};
+        chmod scalar((stat($from))[2]), $mode_trg;
     }
-    # TODO: Is this advice superseded?
-    # use 0's in case they do math on them and in case rcopy() is called 
-    # in list context = no uninit val warnings
-    return wantarray ? ( 1, 0, 0 ) : 1;
+    return 1;
 }
-
-    
-=head2 C<dircopy()>
-
-=over 4
-
-=item * Purpose
-
-Recursively traverse a directory and recursively copy it to a new directory.
-
-=item * Arguments
-
-Scalar context:
-
-    my $num_of_files_and_dirs = $self->dircopy($orig,$new[,$buf]) or die $!;
-
-List context:
-
-    my ($num_of_files_and_dirs,$num_of_dirs,$depth_traversed) =
-        $self->dircopy($orig,$new[,$buf]) or die $!;
-
-=item * Return Value
-
-Scalar context:  Returns the number of files and directories copied.
-
-List context:  Returns a 3-element list:
-
-=over 4
-
-=item 1 Number of files and directories copied;
-
-=item 2 Number of directories (only) copied;
-
-=item 3 Depth level traversed.
-
-=back
-
-=item * Comment
-
-=over 4
-
-=item *
-
-The C<dircopy()> method creates intermediate directories as needed.  By
-default it attempts to preserve the modes of all files and directories.  In
-addition, by default it copies all the way down into the directory.
-
-Error conditions: TK
-
-=item *
-
-Unlike FCR's C<dircopy()>, this method provides no functionality to remove
-already existing directories or files before copying (C<$RMTrgDir>).
-
-=item *
-
-Unlike FCR's C<dircopy()>, this method provides no functionality to continue
-on regardless of the failure to copy an individual directory or file (for
-instance, because of inadequate permissions) (C<$SkipFlob>).
-
-=back
-
-=back
-
-=cut
-
-sub dircopy {
-    return if @_ < 3 or @_ > 4;
-    my ($self, $from, $to, $buf) = @_;
-    return unless $self->_samecheck($from, $to);
-print STDERR "XXX: from: $from\n";
-print STDERR "YYY: to:   $to\n";
-
-    if ( !-d $from  || ( -e $to && !-d $to ) ) {
-        $! = 20;
-        return;
-    }
-
-    if ( !-d $to ) {
-        if ($self->{debug}) { print STDERR "$to does not yet exists; creating\n"; }
-        $self->pathmk($to);
-    }
-    else {
-        if ($self->{debug}) { print STDERR "$to already exists\n"; }
-    }
-
-    my $baseend = $to;
-    my $level   = 0;
-    my $filen   = 0;
-    my $dirn    = 0;
-
-    # FCR: must be my()ed before sub {} since it calls itself
-    my $recurs;
-    $recurs = sub {
-        my ($self, $from, $end, $buf) = @_;
-        $filen++ if $end eq $baseend;;
-        $dirn++  if $end eq $baseend;;
-
-        my $DirPerms = oct($self->{DirPerms}) if substr( $self->{DirPerms}, 0, 1 ) eq '0';
-        mkdir( $to, $DirPerms ) or return if !-d $to;
-print STDERR "AAA: Just mkdir $to\n";
-
-        # If we've set a MaxDepth and are now deeper than that, halt
-        # processing and return.
-        # (Can't test this until the rest of the coderef is fleshed out.)
-
-        if ( $self->{MaxDepth} && $level >= $self->{MaxDepth} ) {
-            chmod scalar( ( stat($from) )[2] ), $to if $self->{KeepMode};
-            return ( $filen, $dirn, $level ) if wantarray;
-            return $filen;
-        }
-
-        $level++;
-
-        my @files;
-        if ( $] < 5.006 ) {
-            opendir( STR_DH, $from ) or return;
-            @files = grep( $_ ne '.' && $_ ne '..', readdir(STR_DH) );
-            closedir STR_DH;
-        }
-        else {
-            opendir( my $FROM_DH, $from ) or return;
-            @files = grep( $_ ne '.' && $_ ne '..', readdir($FROM_DH) );
-            closedir $FROM_DH;
-        }
-
-        for my $file (@files) {
-            my ($file_ut) = $file =~ m{ (.*) }xms;
-            my $org = File::Spec->catfile( $from, $file_ut );
-            my $new = File::Spec->catfile( $to, $file_ut );
-            if ( -l $org && $self->{CopyLink} ) {
-                # $org is a symlink and OS can handle symlinks
-                my $target = readlink($org);
-                # FCR: mass-untaint is OK since we have to allow what the file system does
-                ($target) = $target =~ m/(.*)/;
-                carp "Copying a symlink ($org) whose target does not exist"
-                  if !-e $target;
-                unlink $new if -l $new;
-                symlink( $target, $new ) or return;
-            }
-            elsif ( -d $org ) {
-                # $org is a directory
-                my $rc;
-                if ( !-w $org && $self->{KeepMode} ) {
-
-                    # $org is NOT writable by effective uid/gid and we would
-                    # normally want to retain modes (which is default);
-                    # so we have to forsake retaining modes
-
-                    local $self->{KeepMode} = 0;
-                    carp "Copying readonly directory ($org); mode of its contents may not be preserved.";
-                    $rc = $recurs->( $self, $org, $new, $buf ) if  defined $buf;
-                    $rc = $recurs->( $self, $org, $new )       if !defined $buf;
-                    chmod scalar( ( stat($org) )[2] ), $new;
-                }
-                else {
-                    $rc = $recurs->( $self, $org, $new, $buf ) if  defined $buf;
-                    $rc = $recurs->( $self, $org, $new )       if !defined $buf;
-                }
-                return if ( !$rc );
-                $filen++;
-                $dirn++;
-            }
-            else {
-                # $org is something other than a symlink or a directory
-                # In FRC, this block is apparently a TODO item and currently
-                # effectively does nothing
-            }
-        } # END 'for' loop processing files in 'from' directory
-
-        $level--;
-        chmod scalar( ( stat($from) )[2] ), $to if $self->{KeepMode};
-        1;
-    }; # END definition of coderef $recurs
-
-    # Call the recursive subroutine.
-    $recurs->($self, $from, $to, $buf) or return;
-    return wantarray ? ( $filen, $dirn, $level ) : $filen;
-    return;
-}
-
-# pathmk() currently provided only because it is called from within fcopy().
-# It will be publicly documented only when need for its use in toolchain
-# modules has been demonstrated.
 
 sub pathmk {
-    my $self = shift;
     my ( $vol, $dir, $file ) = File::Spec->splitpath( shift() );
-
-    my $DirPerms = oct($self->{DirPerms}) if substr( $self->{DirPerms}, 0, 1 ) eq '0';
 
     if ( defined($dir) ) {
         my (@dirs) = File::Spec->splitdir($dir);
@@ -448,38 +146,125 @@ sub pathmk {
             my $newdir = File::Spec->catdir( @dirs[ 0 .. $i ] );
             my $newpth = File::Spec->catpath( $vol, $newdir, "" );
 
-            mkdir( $newpth, $DirPerms ) or return if !-d $newpth;
-            mkdir( $newpth, $DirPerms ) if !-d $newpth;
+            mkdir( $newpth ) or return if !-d $newpth;
+            mkdir( $newpth ) if !-d $newpth;
         }
     }
 
     if ( defined($file) ) {
         my $newpth = File::Spec->catpath( $vol, $dir, $file );
 
-        mkdir( $newpth, $DirPerms ) or return if !-d $newpth;
-        mkdir( $newpth, $DirPerms ) if !-d $newpth;
+        mkdir( $newpth ) or return if !-d $newpth;
+        mkdir( $newpth ) if !-d $newpth;
     }
 
     return 1;
 }
 
-# _samecheck() is called from within publicly documented functions but, as was
-# the case with FCR, it will not itself be publicly documented.
-# At this point, _samecheck() does not have the CopyLoop stuff that $samecheck
-# has in FCR.
+
+=head2 C<dircopy()>
+
+=over 4
+
+=item * Purpose
+
+A stripped-down replacement for C<File::Copy::Recursive::dircopy()>.
+
+Given the path to the directory specified by the first argument,
+copies all of the files and directories beneath it to the directory specified
+by the second argument.
+
+=item * Arguments
+
+    my $count = dircopy($orig, $new);
+    warn "dircopy() returned undefined value" unless defined $count;
+
+=item * Return Value
+
+Upon completion, returns the count of directories and files created -- which
+might be C<0>.
+
+Should the function not complete (but not C<die>), an undefined value will be
+returned.  That generally indicates problems with argument validation and is
+done for consistency with C<File::Copy::Recursive::dircopy>.
+
+=item * Restrictions
+
+None of C<File::Copy::Recursive::dircopy>'s bells and whistles.
+No provision for special handling of symlinks.  No preservation of file or
+directory modes.  No restriction on maximum depth.  No nothing; this is
+fine-tuned to the needs of the F<CPAN::Reporter> test suite.
+
+=back
+
+=cut
+
+sub dircopy {
+    my ($orig, $new) = @_;
+    return unless _samecheck($orig, $new);
+    my $count = 0;
+    unless (-d $new) {
+        mkpath($new) or die "Unable to mkpath $new: $!";
+        $count++;
+    }
+
+    my %files_seen = ();
+    my %dirs_seen = ();
+    my @dirs_needed = ();
+    my $wanted = sub {
+
+        if (-d _) {
+            my $d = $File::Find::dir;
+            my $e = $d;
+            $e =~ s{^\Q$orig\E/(.*)}{$1};
+            unless ($dirs_seen{$d}) {
+                unless ($e eq $orig) {
+                    my $copy_dir = File::Spec->catdir($new, $e);
+                    unless ($dirs_seen{$e}) {
+                        $dirs_seen{$e} = $copy_dir;
+                        push @dirs_needed, $copy_dir;
+                    }
+                }
+            }
+        }
+        if (-f $_) {
+            my $f = File::Spec->catfile($File::Find::name);
+            my $g = $f;
+            $g =~ s{^\Q$orig\E/(.*)}{$1};
+            my $copy_file = File::Spec->catfile($new, $g);
+            $files_seen{$f} = $copy_file
+                unless $files_seen{$g};
+        }
+    };
+
+    find($wanted, ($orig));
+
+    for my $d (@dirs_needed) {
+        mkpath $d or die "Unable to mkpath $d: $!";
+        $count++;
+    }
+    for my $f (sort keys %files_seen) {
+        copy($f => $files_seen{$f})
+            or die "Unable to copy $f to $files_seen{$f}: $!";
+        $count++;
+    }
+
+    return $count;
+}
 
 sub _samecheck {
-    my ($self, $from, $to) = @_;
+	# Adapted from File::Copy::Recursive
+    my ($from, $to) = @_;
     return if !defined $from || !defined $to;
     return if $from eq $to;
 
-    if ($self->{PFSCheck} and not ($^O eq 'MSWin32')) {
+    if ($^O ne 'MSWin32') {
         # perldoc perlport: "(Win32) "dev" and "ino" are not meaningful."
         # Will probably have to add restrictions for VMS and other OSes.
         my $one = join( '-', ( stat $from )[ 0, 1 ] ) || '';
         my $two = join( '-', ( stat $to   )[ 0, 1 ] ) || '';
         if ( $one and $one eq $two ) {
-            carp "$from and $to are identical";
+            warn "$from and $to are identical";
             return;
         }
     }
@@ -488,7 +273,7 @@ sub _samecheck {
 
 =head2 File::Copy::Recursive Subroutines Not Supported in File::Copy::Recursive::Reduced
 
-As of the current version, FCR2 has no publicly documented methods equivalent
+As of the current version, FCR2 has no publicly documented, exportable subroutines equivalent
 to the following FCR exportable subroutines:
 
     rcopy
@@ -500,6 +285,8 @@ to the following FCR exportable subroutines:
     pathempty
     pathrm
     pathrmdir
+
+Consideration is being given to supporting C<rcopy()>.
 
 =head1 BUGS AND SUPPORT
 
