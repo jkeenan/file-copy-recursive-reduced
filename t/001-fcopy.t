@@ -4,8 +4,7 @@ use strict;
 use warnings;
 
 use Test::More qw(no_plan); # tests => 49;
-use File::Copy::Recursive::Reduced qw( fcopy ); 
-use File::Copy::Recursive (); 
+use File::Copy::Recursive::Reduced qw( fcopy );
 use Capture::Tiny qw(capture_stderr);
 use File::Spec;
 use File::Temp qw(tempdir);
@@ -62,7 +61,7 @@ SKIP: {
 SKIP: {
     skip "System does not support symlinks", 4
         unless $File::Copy::Recursive::Reduced::CopyLink;
-    
+
     # System supports symlinks (though the module does not yet do so).
     my ($tdir, $old, $new, $symlink, $rv);
     $tdir = tempdir( CLEANUP => 1 );
@@ -235,6 +234,7 @@ sub more_basic_tests {
 
 {
     note("Basic tests of File::Copy::Recursive::fcopy()");
+    require File::Copy::Recursive;
     no warnings ('redefine');
     local *fcopy = \&File::Copy::Recursive::fcopy;
     use warnings;
@@ -417,10 +417,10 @@ SKIP: {
     my $config_dir = File::Spec->catdir( MockHomeDir::home_dir, ".cpanreporter" );
     my $config_file = File::Spec->catfile( $config_dir, "config.ini" );
     my $history_file = File::Spec->catfile( $config_dir, "reports-sent.db" );
-    my $sample_history_file = File::Spec->catfile(qw/t history reports-sent-longer.db/); 
+    my $sample_history_file = File::Spec->catfile(qw/t history reports-sent-longer.db/);
     mkpath( $config_dir );
     ok( -d $config_dir, "temporary config dir created" );
-    
+
     # CPAN::Reporter:If old history exists, convert it
     # I'm not really sure what the point of this test is.
     SKIP: {
