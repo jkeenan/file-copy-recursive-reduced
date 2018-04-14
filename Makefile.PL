@@ -18,10 +18,11 @@ WriteMakefile(
                     },
     # Modern EU::MM enables us to identify modules required only for the test
     # suite.
-    ( $mm_ver < 6.63_03 ? 'BUILD_REQUIRES' : 'TEST_REQUIRES' )
-                    =>  {
-                            'Test::Simple' => 0.44,
-                        },
+    ( $mm_ver < 6.63_03 ? 'BUILD_REQUIRES' : 'TEST_REQUIRES' ) =>  {
+                        'Test::Simple'  => 0.44,
+                        'Capture::Tiny' => 0,
+                        'File::Temp'    => 0,
+                    },
     # Modern EU::MM enables 'make dist' to write good META.json (and META.yml)
     ($mm_ver < 6.46 ? () : (META_MERGE => {
         'meta-spec' => { version => 2 },
@@ -55,4 +56,3 @@ __END__
         Cwd             => 0,
         File::Spec      => 0,
         Path::Tiny      => 0,
-        Capture::Tiny      => 0,

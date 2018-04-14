@@ -1,18 +1,20 @@
 package File::Copy::Recursive::Reduced;
 use strict;
-
-BEGIN {
-    # Keep older versions of Perl from trying to use lexical warnings
-    $INC{'warnings.pm'} = "fake warnings entry for < 5.6 perl ($])" if $] < 5.006;
-}
 use warnings;
+
+use parent qw( Exporter );
+our @EXPORT_OK = qw( dircopy fcopy );
+our $VERSION = '0.001';
 
 use File::Copy;
 use File::Find;
 use File::Path qw( mkpath );
 use File::Spec;
 
-our $VERSION = '0.001';
+our $Link       = eval { local $SIG{'__DIE__'}; link    '', ''; 1 } || 0;
+our $CopyLink   = eval { local $SIG{'__DIE__'}; symlink '', ''; 1 } || 0;
+
+
 
 =head1 NAME
 

@@ -12,7 +12,6 @@ use Exporter ();
     create_tsubdir
     get_fresh_tmp_dir
 | );
-use Carp;
 use File::Spec;
 use File::Temp ( qw| tempdir | );
 use File::Path ( qw| mkpath | );
@@ -22,10 +21,10 @@ sub create_tfile {
     my $tdir = shift;
     my $filename = shift || 'old';
     my $old = File::Spec->catfile($tdir, $filename);
-    open my $OUT, '>', $old or croak "Unable to open for writing";
+    open my $OUT, '>', $old or die "Unable to open for writing: $!";
     binmode $OUT;
     print $OUT "\n";
-    close $OUT or croak "Unable to close after writing";
+    close $OUT or die "Unable to close after writing: $!";
     return $old;
 }
 
@@ -45,7 +44,7 @@ sub create_tsubdir {
     my $tdir = shift;
     my $old = File::Spec->catdir($tdir, 'old_dir');
     my $rv = mkdir($old);
-    croak "Unable to create temporary subdirectory for testing"
+    die "Unable to create temporary subdirectory for testing: $!"
         unless $rv;
     return $old;
 }
@@ -56,7 +55,7 @@ sub get_fresh_tmp_dir {
     my $tmpd = tempdir( CLEANUP => 1 );
     for my $dir ( _get_dirs($tmpd) ) {
         my @created = mkpath($dir, { mode => 0711 });
-        croak "Unable to create directory $dir for testing" unless @created;
+        die "Unable to create directory $dir for testing: $!" unless @created;
 
         path("$dir/empty")->spew("");
         path("$dir/data")->spew("oh hai\n$dir");
