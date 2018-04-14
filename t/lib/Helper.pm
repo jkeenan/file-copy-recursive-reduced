@@ -7,7 +7,7 @@ use Exporter ();
 @ISA = 'Exporter';
 @EXPORT_OK = ( qw|
     create_tfile
-    create_tfile_and_new_path
+    create_tfile_and_name_for_new_file_in_same_dir
     get_mode
     create_tsubdir
     get_fresh_tmp_dir
@@ -28,10 +28,11 @@ sub create_tfile {
     return $old;
 }
 
-sub create_tfile_and_new_path {
+sub create_tfile_and_name_for_new_file_in_same_dir {
     my $tdir = shift;
+    my $new_filename = shift || 'new_file';
     my $old = create_tfile($tdir);
-    my $new = File::Spec->catfile($tdir, 'new');
+    my $new = File::Spec->catfile($tdir, $new_filename);
     return ($old, $new);
 }
 

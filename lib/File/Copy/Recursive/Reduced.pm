@@ -88,8 +88,42 @@ to preserve the mode of the original file.
 
     fcopy($orig, $new) or die $!;
 
-Two required arguments: the file to be copied and the location where it is to
-be copied.
+Two required arguments: the absolute path to the file being copied, and the location where it is to
+be copied.  Four cases should be noted:
+
+=over 4
+
+=item 1 Create copy within same directory but new basename
+
+    fcopy('/path/to/filename', '/path/to/newfile');
+
+The second argument must be the absolute path to the new file.  (Otherwise
+the file will be created in the current working directory, which is almost
+certainly what you do not want.)
+
+=item 2 Create copy within different, already B<existing> directory, same basename
+
+    fcopy('/path/to/filename', '/path/to/existing/directory');
+
+The second argument can be merely the path to the existing directory; will
+create F</path/to/existing/directory/filename>.
+
+=item 3 Create copy within different, not yet existing directory, same basename
+
+    fcopy('/path/to/filename', '/path/not/yet/existing/directory/filename');
+
+The second argument will be interpreted as the complete path to the newly
+created file.  The basename must be included even if it is the same as in the
+first argument.  Will create F</path/not/yet/existing/directory/filename>.
+
+=item 4 Create copy within different, not yet existing directory, different basename
+
+    fcopy('/path/to/filename', '/path/not/yet/existing/directory/newfile');
+
+The second argument will be interpreted as the complete path to the newly
+created file.  Will create F</path/not/yet/existing/directory/newfile>.
+
+=back
 
 =item * Return Value
 

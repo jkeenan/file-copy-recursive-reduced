@@ -3,18 +3,17 @@
 use strict;
 use warnings;
 
-use File::Copy::Recursive::Reduced qw( fcopy ); 
 use Test::More qw(no_plan); # tests => 49;
-#use Carp;
+use File::Copy::Recursive::Reduced qw( fcopy ); 
+use File::Copy::Recursive (); 
 use Capture::Tiny qw(capture_stderr);
-#use File::Path qw(mkpath);
-#use File::Spec;
+use File::Spec;
 use File::Temp qw(tempdir);
 #use Path::Tiny;
 use lib qw( t/lib );
 #use MockHomeDir;
 use Helper ( qw|
-    create_tfile_and_new_path
+    create_tfile_and_name_for_new_file_in_same_dir
     create_tfile
 |);
 #    get_mode
@@ -22,7 +21,7 @@ use Helper ( qw|
 
 my ($from, $to, $rv);
 
-note("fcopy(): Test bad arguments");
+note("fcopy(): Test faulty or inappropriate arguments");
 
 $rv = fcopy();
 ok(! defined $rv, "fcopy() returned undef when not provided correct number of arguments");
@@ -46,7 +45,7 @@ SKIP: {
     skip "System does not support hard links", 4
         unless $File::Copy::Recursive::Reduced::Link;
     my $tdir = tempdir( CLEANUP => 1 );
-    my ($old, $new) = create_tfile_and_new_path($tdir);
+    my ($old, $new) = create_tfile_and_name_for_new_file_in_same_dir($tdir);
     my $rv = link($old, $new) or die "Unable to link: $!";
     ok($rv, "Able to hard link $old and $new");
     my $stderr = capture_stderr { $rv = fcopy($old, $new); };
@@ -104,27 +103,155 @@ SKIP: {
         "RTC 123964: fcopy() returned undefined value when first argument was a directory");
 }
 
+note("fcopy(): Test good arguments");
+
+sub basic_tests {
+
+    note("Copy file within existing same directory, new basename");
+    my ($tdir, $old, $new, $rv, $stderr);
+    $tdir = tempdir( CLEANUP => 1 );
+    ($old, $new) = create_tfile_and_name_for_new_file_in_same_dir($tdir);
+
+    note("AAA: 1st: $old");
+    note("     2nd: $new");
+    $rv = fcopy($old, $new);
+    ok($rv, "fcopy() returned true value: $rv");
+    ok(-f $new, "$old copied to $new, which is file");
+
+    note("Copy file to existing different directory, same basename");
+    my ($tdir2, $basename, $expected_new_file);
+    $tdir2 = tempdir( CLEANUP => 1 );
+    $basename = 'thirdfile';
+    $old = create_tfile($tdir, $basename);
+    $expected_new_file = File::Spec->catfile($tdir2, $basename);
+    note("BBB: 1st: $old");
+    note("     2nd: $tdir2");
+    $rv = fcopy($old, $tdir2);
+    ok($rv, "fcopy() returned true value: $rv");
+    ok(-f $expected_new_file, "$old copied to $expected_new_file, which is file");
+
+    note("Copy file to different directory not yet existing;");
+    note("  basename must be explicitly provided at end of 2nd argument");
+    my (@subdirs, $newdir);
+    $basename = 'fourth_file';
+    $old = create_tfile($tdir, $basename);
+    @subdirs = ('alpha', 'beta', 'gamma');
+    $newdir = File::Spec->catdir($tdir2, @subdirs);
+    $expected_new_file = File::Spec->catfile($newdir, $basename);
+    note("CCC: 1st: $old");
+    note("     2nd: $expected_new_file");
+    $rv = fcopy($old, $expected_new_file);
+    ok($rv, "fcopy() returned true value: $rv");
+    ok(-f $expected_new_file, "$old copied to $expected_new_file, which is file");
+    return 1;
+}
+
+sub more_basic_tests {
+    my ($tdir, $adir, $bdir) = @_;
+    mkdir($adir);
+    mkdir($bdir);
+    for my $d ($tdir, $adir, $bdir) {
+        ok(-d $d, "$d located") or die "Can't find $d";
+    }
+    for (1..4) {
+        my $f = 'file'. $_;
+        my $af = "$adir/$f";;
+        open my $OUT, '>', $af or die "Unable to open to write";
+        say $OUT '';
+        close $OUT or die "Unable to close after write";
+        ok(-f $af, "Created dummy file $af");
+    }
+
+    my ($base, $orig, $newbase, $new, $expect, $rv, $newdir, @subdirs);
+
+    note("Case 1: " . q|fcopy('/path/to/filename', '/path/to/newfile');|);
+    $base = 'file1';
+    $orig = File::Spec->catfile($adir, $base);
+    $newbase = 'newfile';
+    $new = $expect = File::Spec->catfile($adir, $newbase);
+    ok(! -e $expect, "$expect does not yet exist");
+    $rv = fcopy($orig, $new);
+    ok(defined $rv, "fcopy() returned defined value");
+    ok(-f $expect, "$expect has been created");
+
+    note("Case 2: " . q|fcopy('/path/to/filename', '/path/to/existing/directory');|);
+    $base = 'file2';
+    $orig = File::Spec->catfile($adir, $base);
+    $new = $bdir;
+    $expect = File::Spec->catfile($bdir, $base);
+    ok(! -e $expect, "$expect does not yet exist");
+    $rv = fcopy($orig, $new);
+    ok(defined $rv, "fcopy() returned defined value");
+    ok(-f $expect, "$expect has been created");
+
+    note("Case 3: " . q|fcopy('/path/to/filename', '/path/not/yet/existing/directory/filename')|);
+    $base = 'file3';
+    $orig = File::Spec->catfile($adir, $base);
+    @subdirs = qw( alpha beta );
+    $newdir = File::Spec->catdir($bdir, @subdirs);
+    $new = $expect = File::Spec->catfile($newdir, $base);
+    ok(! -e $expect, "$expect does not yet exist");
+    $rv = fcopy($orig, $new);
+    ok(defined $rv, "fcopy() returned defined value");
+    ok(-f $expect, "$expect has been created");
+    {
+        my $interdir = $bdir;
+        for my $d (@subdirs) {
+            $interdir = File::Spec->catdir($interdir, $d);
+            ok(-d $interdir, "Intermediate directory $interdir created");
+        }
+    }
+
+    note("Case 4: " . q|fcopy('/path/to/filename', #'/path/not/yet/existing/directory/newfile');|);
+    $base = 'file4';
+    $orig = File::Spec->catfile($adir, $base);
+    @subdirs = qw( gamma delta );
+    $newdir = File::Spec->catdir($bdir, @subdirs);
+    $newbase = 'newfile';
+    $new = $expect = File::Spec->catfile($newdir, $newbase);
+    ok(! -e $expect, "$expect does not yet exist");
+    $rv = fcopy($orig, $new);
+    ok(defined $rv, "fcopy() returned defined value");
+    ok(-f $expect, "$expect has been created");
+    {
+        my $interdir = $bdir;
+        for my $d (@subdirs) {
+            $interdir = File::Spec->catdir($interdir, $d);
+            ok(-d $interdir, "Intermediate directory $interdir created");
+        }
+    }
+    return 1;
+}
+
+{
+    note("Basic tests of File::Copy::Recursive::Reduced::fcopy()");
+    basic_tests();
+
+    my $tdir = tempdir(CLEANUP => 1);
+    my $adir = "$tdir/albemarle";
+    my $bdir = "$tdir/beverly";
+    more_basic_tests($tdir, $adir, $bdir);
+}
+
+{
+    note("Basic tests of File::Copy::Recursive::fcopy()");
+    no warnings ('redefine');
+    local *fcopy = \&File::Copy::Recursive::fcopy;
+    use warnings;
+    basic_tests();
+
+    my $tdir = tempdir(CLEANUP => 1);
+    my $adir = "$tdir/albemarle";
+    my $bdir = "$tdir/beverly";
+    more_basic_tests($tdir, $adir, $bdir);
+}
+
 __END__
 my ($self, $from, $to, $buf, $rv);
 
 $self = File::Copy::Recursive::Reduced->new();
 
 # good args #
-
-{
-    note("Basic test of fcopy()");
-    my $self = File::Copy::Recursive::Reduced->new({debug => 1});
-    my $tdir = tempdir( CLEANUP => 1 );
-    my ($old, $new) = create_tfile_and_new_path($tdir);
-    my ($rv, $stderr);
-    my $old_mode = get_mode($old);
-    $stderr = capture_stderr { $rv = fcopy($old, $new); };
-    ok($rv, "fcopy() returned true value");
-    like($stderr, qr/^from:.*?to:/, "fcopy(): got plausible debugging output");
-    ok(-f $new, "$new created");
-    my $new_mode = get_mode($new);
-    cmp_ok($new_mode, 'eq', $old_mode, "fcopy(): mode preserved: $old_mode to $new_mode");
-}
 
 SKIP: {
     skip 'mode preservation apparently not significant on Windows', 5
