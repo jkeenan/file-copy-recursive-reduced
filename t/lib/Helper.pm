@@ -1,8 +1,8 @@
 package Helper;
 use strict;
-BEGIN{ if (not $] < 5.006) { require warnings; warnings->import } }
+use warnings;
 
-use vars qw/@EXPORT_OK @ISA/;
+our (@EXPORT_OK, @ISA);
 use Exporter ();
 @ISA = 'Exporter';
 @EXPORT_OK = ( qw|
