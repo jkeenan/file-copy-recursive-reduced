@@ -21,6 +21,8 @@ WriteMakefile(
     ( $mm_ver < 6.63_03 ? 'BUILD_REQUIRES' : 'TEST_REQUIRES' ) =>  {
                         'Test::Simple'  => 0.44,
                         'Capture::Tiny' => 0,
+                        'File::Path'    => 0,
+                        'File::Spec'    => 0,
                         'File::Temp'    => 0,
                         'Path::Tiny'    => 0,
                     },

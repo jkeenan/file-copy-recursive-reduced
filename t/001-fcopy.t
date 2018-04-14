@@ -3,14 +3,15 @@
 use strict;
 use warnings;
 
-use Test::More qw(no_plan); # tests => 47;
+use Test::More tests => 49;
 use File::Copy::Recursive::Reduced qw( fcopy );
 use Capture::Tiny qw(capture_stderr);
+use File::Path qw(mkpath);
 use File::Spec;
 use File::Temp qw(tempdir);
 use Path::Tiny;
 use lib qw( t/lib );
-#use MockHomeDir;
+use MockHomeDir;
 use Helper ( qw|
     create_tfile_and_name_for_new_file_in_same_dir
     create_tfile
@@ -274,26 +275,25 @@ sub more_basic_tests {
     ok(!$rv, "RTC 123964: fcopy() returns false if source is a directory");
 }
 
-#{
-#    note("Tests using FCR's fcopy() from CPAN::Reporter's test suite");
-#    # t/66_have_tested.t
-#    # t/72_rename_history.t
-#    my $config_dir = File::Spec->catdir( MockHomeDir::home_dir, ".cpanreporter" );
-#    my $config_file = File::Spec->catfile( $config_dir, "config.ini" );
-#    my $history_file = File::Spec->catfile( $config_dir, "reports-sent.db" );
-#    my $sample_history_file = File::Spec->catfile(qw/t history reports-sent-longer.db/);
-#    mkpath( $config_dir );
-#    ok( -d $config_dir, "temporary config dir created" );
-#
-#    # CPAN::Reporter:If old history exists, convert it
-#    # I'm not really sure what the point of this test is.
-#    SKIP: {
-#        skip "$sample_history_file does not exist", 1
-#            unless -e $sample_history_file;
-#        my $self = File::Copy::Recursive::Reduced->new({ debug => 1 });
-#        fcopy($sample_history_file, $history_file);
-#        ok( -f $history_file, "copied sample old history file to config directory");
-#    }
-#}
+{
+    note("Tests using FCR's fcopy() from CPAN::Reporter's test suite");
+    # t/66_have_tested.t
+    # t/72_rename_history.t
+    my $config_dir = File::Spec->catdir( MockHomeDir::home_dir, ".cpanreporter" );
+    my $config_file = File::Spec->catfile( $config_dir, "config.ini" );
+    my $history_file = File::Spec->catfile( $config_dir, "reports-sent.db" );
+    my $sample_history_file = File::Spec->catfile(qw/t history reports-sent-longer.db/);
+    mkpath( $config_dir );
+    ok( -d $config_dir, "temporary config dir created" );
+
+    # CPAN::Reporter:If old history exists, convert it
+    # I'm not really sure what the point of this test is.
+    SKIP: {
+        skip "$sample_history_file does not exist", 1
+            unless -e $sample_history_file;
+        fcopy($sample_history_file, $history_file);
+        ok( -f $history_file, "copied sample old history file to config directory");
+    }
+}
 
 __END__
