@@ -89,22 +89,36 @@ if ($self->{Link}) {
 
 
 ## good args #
-#
-#{
-#    note("Basic test of fcopy()");
-#    my $self = File::Copy::Recursive::Reduced->new({debug => 1});
-#    my $tdir = tempdir( CLEANUP => 1 );
-#    my ($old, $new) = create_tfile_and_new_path($tdir);
-#    my ($rv, $stderr);
-#    my $old_mode = get_mode($old);
-#    $stderr = capture_stderr { $rv = $self->fcopy($old, $new); };
-#    ok($rv, "fcopy() returned true value");
-#    like($stderr, qr/^from:.*?to:/, "fcopy(): got plausible debugging output");
-#    ok(-f $new, "$new created");
-#    my $new_mode = get_mode($new);
-#    cmp_ok($new_mode, 'eq', $old_mode, "fcopy(): mode preserved: $old_mode to $new_mode");
-#}
-#
+
+my @dirnames = ( qw|
+    able baker camera dogtag elmore
+    fargo golfer hatrack impish jolt
+    karma lily mandate namesake oleo
+    partner quorum robot sterling tamarack
+    ultra victor windy xray yellow zebra
+| );
+
+{
+    note("Basic tests of dircopy()");
+    note("Multiple directories; no files; with debug");
+#    note("Multiple directories and files");
+#    note("Multiple directories and files; retain modes");
+#    note("Multiple directories and files with debug");
+    my ($self, $tdir, $tdir2, $old, $new, $rv, $stderr, $expected);
+    my (@created);
+    #my ($old_mode, $new_mode);
+    $self = File::Copy::Recursive::Reduced->new({debug => 1});
+    $tdir   = tempdir( CLEANUP => 1 );
+    $tdir2  = File::Spec->catdir($tdir, 'new_dir');
+    $old        = File::Spec->catdir($tdir, @dirnames[0..4]);
+    $expected   = File::Spec->catdir($tdir2, @dirnames[0..4]);
+    @created = mkpath($old, { mode => 0711 });
+    croak "Unable to create directory $old for testing" unless @created;
+    $rv = $self->dircopy($old, $tdir2);
+    ok($rv, "dircopy() returned true value");
+    ok(-d $expected, "dircopy(): directory $expected created");
+}
+
 #SKIP: {
 #    skip 'mode preservation apparently not significant on Windows', 5
 #        if ($^O eq 'MSWin32') ;
@@ -284,3 +298,6 @@ if ($self->{Link}) {
 #    }
 #}
 
+__END__
+
+#    cmp_ok($new_mode, 'eq', $old_mode, "fcopy(): mode preserved: $old_mode to $new_mode");

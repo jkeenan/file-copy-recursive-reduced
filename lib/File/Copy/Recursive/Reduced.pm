@@ -320,13 +320,23 @@ sub dircopy {
     return if @_ < 3 or @_ > 4;
     my ($self, $from, $to, $buf) = @_;
     return unless $self->_samecheck($from, $to);
+print STDERR "XXX: from: $from\n";
+print STDERR "YYY: to:   $to\n";
 
     if ( !-d $from  || ( -e $to && !-d $to ) ) {
         $! = 20;
         return;
     }
 
-    my $baseend = $from;
+    if ( !-d $to ) {
+        if ($self->{debug}) { print STDERR "$to does not yet exists; creating\n"; }
+        $self->pathmk($to);
+    }
+    else {
+        if ($self->{debug}) { print STDERR "$to already exists\n"; }
+    }
+
+    my $baseend = $to;
     my $level   = 0;
     my $filen   = 0;
     my $dirn    = 0;
@@ -334,13 +344,13 @@ sub dircopy {
     # FCR: must be my()ed before sub {} since it calls itself
     my $recurs;
     $recurs = sub {
-    ##        my ( $str, $end, $buf ) = @_;
-        my ($self, $from, $to, $buf) = @_;
-        $filen++ if $to eq $baseend;
-        $dirn++  if $to eq $baseend;
+        my ($self, $from, $end, $buf) = @_;
+        $filen++ if $end eq $baseend;;
+        $dirn++  if $end eq $baseend;;
 
         my $DirPerms = oct($self->{DirPerms}) if substr( $self->{DirPerms}, 0, 1 ) eq '0';
         mkdir( $to, $DirPerms ) or return if !-d $to;
+print STDERR "AAA: Just mkdir $to\n";
 
         # If we've set a MaxDepth and are now deeper than that, halt
         # processing and return.
