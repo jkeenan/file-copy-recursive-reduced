@@ -156,6 +156,9 @@ sub fcopy {
     my ($from, $to) = @_;
     return unless _samecheck($from, $to);
     my ( $volm, $path ) = File::Spec->splitpath($to);
+
+    # TODO: Explore whether it's possible for $path to be Perl-false in
+    # following line.  If not, remove.
     if ( $path && !-d $path ) {
         pathmk(File::Spec->catpath($volm, $path, ''));
     }
@@ -181,17 +184,15 @@ sub pathmk {
         for ( my $i = 0; $i < scalar(@dirs); $i++ ) {
             my $newdir = File::Spec->catdir( @dirs[ 0 .. $i ] );
             my $newpth = File::Spec->catpath( $vol, $newdir, "" );
-
-            mkdir( $newpth ) or return if !-d $newpth;
-            mkdir( $newpth ) if !-d $newpth;
+            mkdir( $newpth );
+            return unless -d $newpth;
         }
     }
 
     if ( defined($file) ) {
         my $newpth = File::Spec->catpath( $vol, $dir, $file );
-
-        mkdir( $newpth ) or return if !-d $newpth;
-        mkdir( $newpth ) if !-d $newpth;
+        mkdir( $newpth );
+        return unless -d $newpth;
     }
 
     return 1;
@@ -289,10 +290,14 @@ sub dircopy {
 }
 
 sub _samecheck {
-	# Adapted from File::Copy::Recursive
+    # Adapted from File::Copy::Recursive
     my ($from, $to) = @_;
     return if !defined $from || !defined $to;
     return if $from eq $to;
+
+    # TODO:  Explore whether we should check -e $from here.
+    # If we don't have a starting point, it shouldn't make any sense to go
+    # farther.
 
     if ($^O ne 'MSWin32') {
         # perldoc perlport: "(Win32) "dev" and "ino" are not meaningful."
