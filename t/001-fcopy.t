@@ -222,7 +222,10 @@ sub more_basic_tests {
     return 1;
 }
 
-{
+SKIP: {
+    skip "Cannot require File::Copy::Recursive", 29
+        unless ( eval { require File::Copy::Recursive; } );
+
     note("Basic tests of File::Copy::Recursive::Reduced::fcopy()");
     basic_tests();
 
