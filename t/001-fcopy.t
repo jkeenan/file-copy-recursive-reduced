@@ -156,7 +156,7 @@ sub more_basic_tests {
         my $f = 'file'. $_;
         my $af = "$adir/$f";;
         open my $OUT, '>', $af or die "Unable to open to write";
-        say $OUT '';
+        print $OUT "\n";
         close $OUT or die "Unable to close after write";
         ok(-f $af, "Created dummy file $af");
     }
