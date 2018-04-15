@@ -1,5 +1,5 @@
 # -*- perl -*-
-# t/002-fcopy.t - tests of fcopy() method
+# t/001-fcopy.t - tests of fcopy() method
 use strict;
 use warnings;
 
@@ -42,7 +42,7 @@ $rv = fcopy('foo', 'foo');
 ok(! defined $rv, "fcopy() returned undef when provided 2 identical arguments");
 
 SKIP: {
-    skip "System does not support hard links", 4
+    skip "System does not support hard links", 3
         unless $File::Copy::Recursive::Reduced::Link;
     my $tdir = tempdir( CLEANUP => 1 );
     my ($old, $new) = create_tfile_and_name_for_new_file_in_same_dir($tdir);

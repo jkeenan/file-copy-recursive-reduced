@@ -211,7 +211,7 @@ sub pathmk {
 
 A stripped-down replacement for C<File::Copy::Recursive::dircopy()>.
 
-Given the path to the directory specified by the first argument,
+Given the path to the directory specified by the first argument, the function
 copies all of the files and directories beneath it to the directory specified
 by the second argument.
 
@@ -231,10 +231,10 @@ done for consistency with C<File::Copy::Recursive::dircopy>.
 
 =item * Restrictions
 
-None of C<File::Copy::Recursive::dircopy>'s bells and whistles.
-No provision for special handling of symlinks.  No preservation of file or
-directory modes.  No restriction on maximum depth.  No nothing; this is
-fine-tuned to the needs of the F<CPAN::Reporter> test suite.
+None of C<File::Copy::Recursive::dircopy>'s bells and whistles.  No provision
+for special handling of symlinks.  No preservation of file or directory modes.
+No restriction on maximum depth.  No nothing; this is fine-tuned to the needs
+of Perl toolchain modules and their test suites.
 
 =back
 
@@ -242,6 +242,7 @@ fine-tuned to the needs of the F<CPAN::Reporter> test suite.
 
 sub dircopy {
     my ($orig, $new) = @_;
+    return if @_ != 2;
     return unless _samecheck($orig, $new);
     my $count = 0;
     unless (-d $new) {
@@ -299,7 +300,7 @@ sub _samecheck {
     return if !defined $from || !defined $to;
     return if $from eq $to;
 
-    # TODO:  Explore whether we should check -e $from here.
+    # TODO:  Explore whether we should check (-e $from) here.
     # If we don't have a starting point, it shouldn't make any sense to go
     # farther.
 

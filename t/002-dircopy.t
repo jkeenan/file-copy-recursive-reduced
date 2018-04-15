@@ -1,9 +1,11 @@
 # -*- perl -*-
-# t/003-dircopy.t - tests of dircopy() method
+# t/002-dircopy.t - tests of dircopy() method
 use strict;
 use warnings;
 
 use Test::More qw(no_plan); # tests => 16;
+use File::Copy::Recursive::Reduced qw(dircopy);
+
 use Carp;
 use Capture::Tiny qw(capture_stdout capture_stderr);
 use File::Path qw(mkpath);
@@ -14,46 +16,42 @@ use lib qw( t/lib );
 use MockHomeDir;
 use Helper ( qw|
     create_tfile
-    create_tfile_and_new_path
+    create_tfile_and_name_for_new_file_in_same_dir
     create_tsubdir
 | );
     #get_mode
     #get_fresh_tmp_dir
 
-BEGIN { use_ok( 'File::Copy::Recursive::Reduced' ); }
-
-my ($self, $from, $to, $buf, $rv);
-
-$self = File::Copy::Recursive::Reduced->new();
+my ($from, $to, $rv);
 
 # bad args #
 
-$rv = $self->dircopy();
+$rv = dircopy();
 ok(! defined $rv, "dircopy() returned undef when not provided correct number of arguments");
 
-$rv = $self->dircopy('foo');
+$rv = dircopy('foo');
 ok(! defined $rv, "dircopy() returned undef when not provided correct number of arguments");
 
-$rv = $self->dircopy('foo', 'bar', 'baz', 'bletch');
+$rv = dircopy('foo', 'bar', 'baz', 'bletch');
 ok(! defined $rv, "dircopy() returned undef when not provided correct number of arguments");
 
-$rv = $self->dircopy(undef, 'foo');
+$rv = dircopy(undef, 'foo');
 ok(! defined $rv, "dircopy() returned undef when first argument was undefined");
 
-$rv = $self->dircopy('foo', undef);
+$rv = dircopy('foo', undef);
 ok(! defined $rv, "dircopy() returned undef when second argument was undefined");
 
-$rv = $self->dircopy('foo', 'foo');
+$rv = dircopy('foo', 'foo');
 ok(! defined $rv, "dircopy() returned undef when provided 2 identical arguments");
 
-if ($self->{Link}) {
-    my $self = File::Copy::Recursive::Reduced->new({debug => 1});
-    ok($self->{debug}, "new(): debugging on");
+SKIP: {
+    skip "System does not support hard links", 3
+        unless $File::Copy::Recursive::Reduced::Link;
     my $tdir = tempdir( CLEANUP => 1 );
-    my ($old, $new) = create_tfile_and_new_path($tdir);
+    my ($old, $new) = create_tfile_and_name_for_new_file_in_same_dir($tdir);
     my $rv = link($old, $new) or croak "Unable to link";
     ok($rv, "Able to hard link $old and $new");
-    my $stderr = capture_stderr { $rv = $self->dircopy($old, $new); };
+    my $stderr = capture_stderr { $rv = dircopy($old, $new); };
     ok(! defined $rv,
         "dircopy() returned undef when provided arguments with identical dev and ino");
     SKIP: {
@@ -66,26 +64,27 @@ if ($self->{Link}) {
 
 {
     note("First argument not a directory or second argument exists already and is not a directory");
-    my ($self, $tdir, $old, $new, $rv);
-    #my $self = File::Copy::Recursive::Reduced->new({debug => 1});
-    $self = File::Copy::Recursive::Reduced->new();
+    my ($tdir, $old, $new, $rv);
     $tdir = tempdir( CLEANUP => 1 );
     $old = create_tfile($tdir);
     $new = 'foo';
-    $rv = $self->dircopy($old, $new);
+    $rv = dircopy($old, $new);
     ok(! defined $rv, "dircopy() returned undef when first argument was not a directory");
     cmp_ok($!, '>=', 0, "\$ERRNO set: " . $!);
     undef $!;
     ok(! $!, "\$ERRORNO has been cleared");
 
-    $old = create_tsubdir($tdir);
-    $new = create_tfile($tdir, 'new');
-    $rv = $self->dircopy($old, $new);
-    ok(! defined $rv,
-        "dircopy() returned undef when second argument -- not a directory -- already existed");
-    cmp_ok($!, '>=', 0, "\$ERRNO set: " . $!);
-    undef $!;
+#    $old = create_tsubdir($tdir);
+#    $new = create_tfile($tdir, 'new');
+#    $rv = dircopy($old, $new);
+#    ok(! defined $rv,
+#        "dircopy() returned undef when second argument -- not a directory -- already existed");
+#    cmp_ok($!, '>=', 0, "\$ERRNO set: " . $!);
+#    undef $!;
 }
+
+__END__
+
 
 
 ## good args #
@@ -114,7 +113,7 @@ my @dirnames = ( qw|
     $expected   = File::Spec->catdir($tdir2, @dirnames[0..4]);
     @created = mkpath($old, { mode => 0711 });
     croak "Unable to create directory $old for testing" unless @created;
-    $rv = $self->dircopy($old, $tdir2);
+    $rv = dircopy($old, $tdir2);
     ok($rv, "dircopy() returned true value");
     ok(-d $expected, "dircopy(): directory $expected created");
 }
@@ -125,13 +124,14 @@ my @dirnames = ( qw|
 #
 #    note("Test mode preservation turned off");
 #    my $self = File::Copy::Recursive::Reduced->new({ KeepMode => 0 });
-#    ok(! $self->{KeepMode}, "new(): KeepMode is turned off");
+#    ok(! {KeepMode}, "new(): KeepMode is turned off");
 #    my $tdir = tempdir( CLEANUP => 1 );
 #    my ($old, $new) = create_tfile_and_new_path($tdir);
+    create_tfile_and_name_for_new_file_in_same_dir
 #    my $cnt = chmod 0700, $old;
 #    ok($cnt, "chmod on $old");
 #    my $old_mode = get_mode($old);
-#    my $rv = $self->fcopy($old, $new);
+#    my $rv = fcopy($old, $new);
 #    ok($rv, "fcopy() returned true value");
 #    ok(-f $new, "$new created");
 #    my $new_mode = get_mode($new);
@@ -142,13 +142,14 @@ my @dirnames = ( qw|
 #{
 #    note("Test default mode preservation");
 #    my $self = File::Copy::Recursive::Reduced->new({});
-#    ok($self->{KeepMode}, "new(): KeepMode is on");
+#    ok({KeepMode}, "new(): KeepMode is on");
 #    my $tdir = tempdir( CLEANUP => 1 );
 #    my ($old, $new) = create_tfile_and_new_path($tdir);
+    create_tfile_and_name_for_new_file_in_same_dir
 #    my $cnt = chmod 0700, $old;
 #    ok($cnt, "chmod on $old");
 #    my $old_mode = get_mode($old);
-#    my $rv = $self->fcopy($old, $new);
+#    my $rv = fcopy($old, $new);
 #    ok($rv, "fcopy() returned true value");
 #    ok(-f $new, "$new created");
 #    my $new_mode = get_mode($new);
@@ -160,6 +161,7 @@ my @dirnames = ( qw|
 #    note("Test whether method chaining works");
 #    my $tdir = tempdir( CLEANUP => 1 );
 #    my ($old, $new) = create_tfile_and_new_path($tdir);
+    create_tfile_and_name_for_new_file_in_same_dir
 #    my $cnt = chmod 0700, $old;
 #    ok($cnt, "chmod on $old");
 #    my $old_mode = get_mode($old);
@@ -178,7 +180,8 @@ my @dirnames = ( qw|
 #    my $self = File::Copy::Recursive::Reduced->new();
 #    my $tdir = tempdir( CLEANUP => 1 );
 #    my ($old, $new) = create_tfile_and_new_path($tdir);
-#    my @rvs = $self->fcopy($old, $new);
+    create_tfile_and_name_for_new_file_in_same_dir
+#    my @rvs = fcopy($old, $new);
 #    is_deeply( [ @rvs ], [ 1, 0, 0 ],
 #        "fcopy(): Got expected return values in list context");
 #    ok(-f $new, "$new created");
@@ -193,7 +196,7 @@ my @dirnames = ( qw|
 #    my $new = File::Spec->catfile($newpath, 'new');
 #    my $buffer = (1024 * 1024 * 2) + 1;
 #    my $rv;
-#    eval { $rv = $self->fcopy($old, $new, $buffer); };
+#    eval { $rv = fcopy($old, $new, $buffer); };
 #    ok($rv, "fcopy(): Providing buffer as third argument at least does not die");
 #    ok(-f $new, "$new created");
 #}
@@ -207,7 +210,7 @@ my @dirnames = ( qw|
 #    my $new = File::Spec->catfile($newpath, 'new');
 #    my $buffer = (1024 * 1024 * 2) + 1;
 #    my ($rv, $stderr);
-#    $stderr = capture_stderr { $rv = $self->fcopy($old, $new, $buffer); };
+#    $stderr = capture_stderr { $rv = fcopy($old, $new, $buffer); };
 #    ok($rv, "fcopy(): Providing buffer as third argument at least does not die");
 #    like($stderr, qr/^from:.*?to:.*?buf:/, "fcopy(): got plausible debugging output");
 #    ok(-f $new, "$new created");
@@ -215,7 +218,7 @@ my @dirnames = ( qw|
 #
 #SKIP: {
 #    skip 'symlinks not available on this platform', 4
-#        unless $self->{CopyLink};
+#        unless {CopyLink};
 #
 #    note("Test calling fcopy() on symlinks");
 #    my ($self, $tdir, $old, $new, $symlink, $rv);
@@ -227,7 +230,7 @@ my @dirnames = ( qw|
 #        or croak "Unable to symlink $symlink to target $old for testing";
 #    ok(-l $symlink, "fcopy(): $symlink is indeed a symlink");
 #    $new = File::Spec->catfile($tdir, 'new');
-#    $rv = $self->fcopy($symlink, $new);
+#    $rv = fcopy($symlink, $new);
 #    ok($rv, "fcopy() returned true value when copying from symlink");
 #    ok(-f $new, "fcopy(): $new is a file");
 #    ok(-l $new, "fcopy(): but $new is also another symlink");
@@ -240,7 +243,7 @@ my @dirnames = ( qw|
 #    ok(-l $xsymlink, "fcopy(): $xsymlink is indeed a symlink");
 #    $xnew = File::Spec->catfile($tdir, 'xnew');
 #    unlink $xold or croak "Unable to unlink $xold during testing";
-#    $stderr = capture_stderr { $rv = $self->fcopy($xsymlink, $xnew); };
+#    $stderr = capture_stderr { $rv = fcopy($xsymlink, $xnew); };
 #    ok($rv, "fcopy() returned true value when copying from symlink");
 #    like($stderr, qr/Copying a symlink \($xsymlink\) whose target does not exist/,
 #        "fcopy(): Got expected warning when copying from symlink whose target does not exist");
@@ -255,7 +258,7 @@ my @dirnames = ( qw|
 #    ok(-d $tmpd, "$tmpd exists");
 #
 #    # that fcopy copies files and symlinks is covered by the dircopy tests, specifically _is_deeply_path()
-#    $rv = $self->fcopy( "$tmpd/orig/data", "$tmpd/fcopy" );
+#    $rv = fcopy( "$tmpd/orig/data", "$tmpd/fcopy" );
 #    is(
 #        path("$tmpd/orig/data")->slurp,
 #        path("$tmpd/fcopy")->slurp,
@@ -263,7 +266,7 @@ my @dirnames = ( qw|
 #    );
 #
 #    path("$tmpd/fcopyexisty")->spew("oh hai");
-#    my @fcopy_rv = $self->fcopy( "$tmpd/orig/data", "$tmpd/fcopyexisty");
+#    my @fcopy_rv = fcopy( "$tmpd/orig/data", "$tmpd/fcopyexisty");
 #    is(
 #        path("$tmpd/orig/data")->slurp,
 #        path("$tmpd/fcopyexisty")->slurp,
@@ -272,7 +275,7 @@ my @dirnames = ( qw|
 #
 #    # This is the test that fails on FreeBSD
 #    # https://rt.cpan.org/Ticket/Display.html?id=123964
-#    $rv = $self->fcopy( "$tmpd/orig", "$tmpd/fcopy" );
+#    $rv = fcopy( "$tmpd/orig", "$tmpd/fcopy" );
 #    ok(!$rv, "RTC 123964: fcopy() returns false if source is a directory");
 #}
 #
@@ -293,7 +296,7 @@ my @dirnames = ( qw|
 #        skip "$sample_history_file does not exist", 1
 #            unless -e $sample_history_file;
 #        my $self = File::Copy::Recursive::Reduced->new({ debug => 1 });
-#        $self->fcopy($sample_history_file, $history_file);
+#        fcopy($sample_history_file, $history_file);
 #        ok( -f $history_file, "copied sample old history file to config directory");
 #    }
 #}
