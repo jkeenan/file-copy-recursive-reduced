@@ -74,13 +74,13 @@ SKIP: {
     undef $!;
     ok(! $!, "\$ERRORNO has been cleared");
 
-#    $old = create_tsubdir($tdir);
-#    $new = create_tfile($tdir, 'new');
-#    $rv = dircopy($old, $new);
-#    ok(! defined $rv,
-#        "dircopy() returned undef when second argument -- not a directory -- already existed");
-#    cmp_ok($!, '>=', 0, "\$ERRNO set: " . $!);
-#    undef $!;
+    $old = create_tsubdir($tdir);
+    $new = create_tfile($tdir, 'new');
+    $rv = dircopy($old, $new);
+    ok(! defined $rv,
+        "dircopy() returned undef when second argument -- not a directory -- already existed");
+    cmp_ok($!, '>=', 0, "\$ERRNO set: " . $!);
+    undef $!;
 }
 
 __END__

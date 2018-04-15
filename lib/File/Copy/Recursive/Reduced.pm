@@ -244,6 +244,12 @@ sub dircopy {
     my ($orig, $new) = @_;
     return if @_ != 2;
     return unless _samecheck($orig, $new);
+
+    if ( !-d $orig  || ( -e $new && !-d $new ) ) {
+        $! = 20;
+        return;
+    }
+
     my $count = 0;
     unless (-d $new) {
         mkpath($new) or die "Unable to mkpath $new: $!";
