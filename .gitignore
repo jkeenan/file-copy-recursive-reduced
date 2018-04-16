@@ -17,7 +17,7 @@ nytprof.out
 /pm_to_blib
 *.o
 *.bs
-Perl-Download-FTP-*.tar.gz
+/*.tar.gz
 /nytprof/
 *.swp
 dump

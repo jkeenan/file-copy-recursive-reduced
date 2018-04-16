@@ -1,5 +1,9 @@
 TODO list for Perl module File::Copy::Recursive::Reduced
 
-- Nothing yet
+- Determine whether we can support KeepMode in dircopy().
+
+- Determine whether we can copy symlinks in both fcopy() and dircopy().  If
+  so, then we can support FCR rcopy() as well.
+
 
 

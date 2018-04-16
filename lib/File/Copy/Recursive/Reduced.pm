@@ -42,24 +42,27 @@ described as being part of the Perl toolchain.
 F<File::Copy::Recursive> (hereinafter referred to as B<FCR>) is heavily used
 in other CPAN libraries.  Out of over 30,000 other CPAN distributions studied
 in early 2018, it ranks in one calculation as the 129th highest distribution
-in terms of its total direct and indirect reverse dependencies.  Hence, it has
-to work correctly and be installable on all operating systems where Perl is
-well supported.
+in terms of its total direct and indirect reverse dependencies.  In current
+parlance, it sits C<high upstream on the CPAN river.> Hence, it ought to work
+correctly and be installable on all operating systems where Perl is well
+supported.
 
 However, as of the time of creation of F<File::Copy::Recursive::Reduced>
-(April 2018), FCR is failing to pass its tests against either Perl 5.26 or
-Perl 5 blead on important operating systems including Windows, FreeBSD and
-NetBSD
-(L<http://fast-matrix.cpantesters.org/?dist=File-Copy-Recursive%200.40>).
-CPAN installers such as F<cpan> and F<cpanm> will not install it without
-resort to C<--force> options and will prevent distributions dependent on FCR
-from being installed as well.  Some patches have been provided to the L<FCR
-bug tracker|https://rt.cpan.org/Dist/Display.html?Name=File-Copy-Recursive>
-for certain problems but FCR's author has not yet applied them.  Even if,
-however, those patches are applied, FCR may not install on certain platforms.
+(April 2018), FCR version 0.40 is failing to pass its tests against either
+Perl 5.26 or Perl 5 blead on important operating systems including Windows,
+FreeBSD and NetBSD
+(L<http://fast-matrix.cpantesters.org/?dist=File-Copy-Recursive%200.40>).  As
+a consequence, CPAN installers such as F<cpan> and F<cpanm> will not install
+it without use of the C<--force> option.  This will prevent distributions
+dependent on FCR from being installed as well.  Some patches have been
+provided to the
+L<FCR bug tracker|https://rt.cpan.org/Dist/Display.html?Name=File-Copy-Recursive> for
+this problem but as of the date on which this distribution is being uploaded
+to CPAN, FCR's author has not yet applied them.  However, even if those
+patches are applied, FCR may face other installability problems on certain platforms.
 
 F<File::Copy::Recursive::Reduced> (hereinafter referred to as B<FCR2>) is
-intended to provide little more than a minimal subset of FCR's functionality
+intended to provide an almost minimal subset of FCR's functionality
 -- just enough to get the Perl toolchain working on the platforms where FCR is
 currently failing.  Functions will be added to FCR2 only insofar as
 investigation shows that they can replace usage of FCR functions in toolchain
@@ -88,8 +91,17 @@ to preserve the mode of the original file.
 
     fcopy($orig, $new) or die $!;
 
-Two required arguments: the absolute path to the file being copied, and the location where it is to
-be copied.  Four cases should be noted:
+List of two required arguments:
+
+=over 4
+
+=item * Absolute path to the file being copied; and
+
+=item * Absolute path to the location to which the file is being copied.
+
+=back
+
+Four cases should be noted:
 
 =over 4
 
@@ -226,8 +238,8 @@ Upon completion, returns the count of directories and files created -- which
 might be C<0>.
 
 Should the function not complete (but not C<die>), an undefined value will be
-returned.  That generally indicates problems with argument validation and is
-done for consistency with C<File::Copy::Recursive::dircopy>.
+returned.  That generally indicates problems with argument validation.  This
+approach is taken for consistency with C<File::Copy::Recursive::dircopy()>.
 
 =item * Restrictions
 
@@ -432,7 +444,11 @@ or through the web interface at L<http://rt.cpan.org>.
 
 =head1 ACKNOWLEDGEMENTS
 
-TK
+Notwithstanding the fact that this distribution is being released to address
+certain problems in File-Copy-Recursive, credit must be given to FCR author
+L<Daniel Muey|http://www.cpan.org/authors/id/D/DM/DMUEY/> for ingenious
+conception and execution.  The implementation of the subroutines provided by
+FCR2 follows that found in FCR to a significant extent.
 
 =head1 AUTHOR
 
