@@ -13,7 +13,7 @@ use File::Spec;
 
 our $Link       = eval { local $SIG{'__DIE__'}; link    '', ''; 1 } || 0;
 our $CopyLink   = eval { local $SIG{'__DIE__'}; symlink '', ''; 1 } || 0;
-
+our $DirPerms   = 0777;
 
 
 =head1 NAME
@@ -340,43 +340,56 @@ sub dircopy {
     # ... hence, the 'else' block just goes away
 
 
-#    my $baseend = $_one;
-#    my $level   = 0;
+    my $baseend = $_one;
+    my $level   = 0;
     my $filen   = 0;
-#    my $dirn    = 0;
-#
-#    my $recurs;    #must be my()ed before sub {} since it calls itself
-#    $recurs = sub {
+    my $dirn    = 0;
+
+    my $recurs;    #must be my()ed before sub {} since it calls itself
+    $recurs = sub {
 #        my ( $str, $end, $buf ) = @_;
-#        $filen++ if $end eq $baseend;
-#        $dirn++  if $end eq $baseend;
-#
+        my ( $str, $end ) = @_;
+        $filen++ if $end eq $baseend;
+        $dirn++  if $end eq $baseend;
+
 #        $DirPerms = oct($DirPerms) if substr( $DirPerms, 0, 1 ) eq '0';
+        # jkeenan: I'm setting our $DirPerms to 0777
+        # the line above won't be needed
+
 #        mkdir( $end, $DirPerms ) or return if !-d $end;
+print STDOUT "AAA: $end\n";
+        mkdir( $end ) or return if !-d $end;
+print STDOUT "BBB: $end\n";
+        # On each pass of the recursive coderef, create the directory in the
+        # 2nd argument or return (undef) if that does not succeed
+
 #        if ( $MaxDepth && $MaxDepth =~ m/^\d+$/ && $level >= $MaxDepth ) {
 #            chmod scalar( ( stat($str) )[2] ), $end if $KeepMode;
 #            return ( $filen, $dirn, $level ) if wantarray;
 #            return $filen;
 #        }
 #
-#        $level++;
-#
-#        my @files;
+        $level++;
+
+        my @files;
 #        if ( $] < 5.006 ) {
 #            opendir( STR_DH, $str ) or return;
 #            @files = grep( $_ ne '.' && $_ ne '..', readdir(STR_DH) );
 #            closedir STR_DH;
 #        }
 #        else {
-#            opendir( my $str_dh, $str ) or return;
-#            @files = grep( $_ ne '.' && $_ ne '..', readdir($str_dh) );
-#            closedir $str_dh;
+            opendir( my $str_dh, $str ) or return;
+            @files = grep( $_ ne '.' && $_ ne '..', readdir($str_dh) );
+            closedir $str_dh;
 #        }
 #
-#        for my $file (@files) {
-#            my ($file_ut) = $file =~ m{ (.*) }xms;
-#            my $org = File::Spec->catfile( $str, $file_ut );
-#            my $new = File::Spec->catfile( $end, $file_ut );
+#       for my $file (@files) {
+        for my $entity (@files) {
+print STDOUT "FFF: entity: $entity\n";
+            my ($file_ut) = $entity =~ m{ (.*) }xms;
+            my $org = File::Spec->catfile( $str, $file_ut );
+            my $new = File::Spec->catfile( $end, $file_ut );
+print STDOUT "GGG: ", join '|' => $org, $new, "\n";
 #            if ( -l $org && $CopyLink ) {
 #                my $target = readlink($org);
 #                ($target) = $target =~ m/(.*)/;    # mass-untaint is OK since we have to allow what the file system does
@@ -386,51 +399,57 @@ sub dircopy {
 #                symlink( $target, $new ) or return;
 #            }
 #            elsif ( -d $org ) {
-#                my $rc;
+            if ( -d $org ) {
+                my $rc;
 #                if ( !-w $org && $KeepMode ) {
 #                    local $KeepMode = 0;
 #                    carp "Copying readonly directory ($org); mode of its contents may not be preserved.";
-#                    $rc = $recurs->( $org, $new, $buf ) if defined $buf;
-#                    $rc = $recurs->( $org, $new ) if !defined $buf;
+##                    $rc = $recurs->( $org, $new, $buf ) if defined $buf;
+##                    $rc = $recurs->( $org, $new ) if !defined $buf;
+#                    $rc = $recurs->( $org, $new );
 #                    chmod scalar( ( stat($org) )[2] ), $new;
 #                }
 #                else {
-#                    $rc = $recurs->( $org, $new, $buf ) if defined $buf;
-#                    $rc = $recurs->( $org, $new ) if !defined $buf;
+##                    $rc = $recurs->( $org, $new, $buf ) if defined $buf;
+##                    $rc = $recurs->( $org, $new ) if !defined $buf;
+                    $rc = $recurs->( $org, $new );
 #                }
-#                if ( !$rc ) {
+                if ( !$rc ) {
 #                    if ($SkipFlop) {
 #                        next;
 #                    }
 #                    else {
-#                        return;
+                        return;
 #                    }
-#                }
-#                $filen++;
-#                $dirn++;
-#            }
+                }
+                $filen++;
+                $dirn++;
+            }
 #            else {
 #                if ( $ok_todo_asper_condcopy->($org) ) {
 #                    if ($SkipFlop) {
-#                        fcopy( $org, $new, $buf ) or next if defined $buf;
-#                        fcopy( $org, $new ) or next if !defined $buf;
+##                        fcopy( $org, $new, $buf ) or next if defined $buf;
+##                        fcopy( $org, $new ) or next if !defined $buf;
+#                        fcopy( $org, $new ) or next;
 #                    }
 #                    else {
-#                        fcopy( $org, $new, $buf ) or return if defined $buf;
-#                        fcopy( $org, $new ) or return if !defined $buf;
+##                        fcopy( $org, $new, $buf ) or return if defined $buf;
+##                        fcopy( $org, $new ) or return if !defined $buf;
+#                        fcopy( $org, $new ) or return;
 #                    }
 #                    chmod scalar( ( stat($org) )[2] ), $new if $KeepMode;
 #                    $filen++;
 #                }
 #            }
-#        }
-#        $level--;
+        } # End 'for' loop around @files
+        $level--;
 #        chmod scalar( ( stat($str) )[2] ), $end if $KeepMode;
-#        1;
-#
-#    };
+        1;
+
+    }; # END definition of $recurs
 #
 #    $recurs->( $_zero, $_one, $_[2] ) or return;
+    $recurs->( $_zero, $_one ) or return;
 #    return wantarray ? ( $filen, $dirn, $level ) : $filen;
     return $filen;
 }
