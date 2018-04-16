@@ -60,11 +60,13 @@ sub get_fresh_tmp_dir {
         path("$dir/empty")->spew("");
         path("$dir/data")->spew("oh hai\n$dir");
         path("$dir/data_tnl")->spew("oh hai\n$dir\n");
+        no warnings 'once';
         if ($File::Copy::Recursive::CopyLink) {
             symlink( "data",    "$dir/symlink" );
             symlink( "noexist", "$dir/symlink-broken" );
             symlink( "..",      "$dir/symlink-loopy" );
         }
+        use warnings;
     }
     return $tmpd;
 }
