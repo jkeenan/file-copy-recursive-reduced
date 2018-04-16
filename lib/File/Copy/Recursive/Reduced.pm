@@ -357,9 +357,9 @@ sub dircopy {
         # the line above won't be needed
 
 #        mkdir( $end, $DirPerms ) or return if !-d $end;
-print STDOUT "AAA: $end\n";
+#print STDOUT "AAA: $end\n";
         mkdir( $end ) or return if !-d $end;
-print STDOUT "BBB: $end\n";
+#print STDOUT "BBB: $end\n";
         # On each pass of the recursive coderef, create the directory in the
         # 2nd argument or return (undef) if that does not succeed
 

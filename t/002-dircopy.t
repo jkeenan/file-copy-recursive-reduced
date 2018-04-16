@@ -117,9 +117,6 @@ SKIP: {
     my $ldir = File::Spec->catdir($tdirs[0], @subdir_names);
     mkpath($ldir) or die "Unable to mkpath $ldir: $!";
     ok(-d $ldir, "Directory $ldir created");
-    #my $fname = 'foo';
-    #my $f1 = create_tfile($ldir, $fname);
-    #ok(-f $f1, "File      $f1 created at bottom level");
     my @expected_subdirs = ();
     my $intermed = $tdirs[1];
     for my $d (@subdir_names) {
@@ -129,8 +126,6 @@ SKIP: {
     for my $d (@expected_subdirs) {
         ok(! -d $d, "Directory $d does not yet exist");
     }
-    #my $expected_file = File::Spec->catfile($expected_subdirs[-1], $fname);
-    #ok(! -f $expected_file, "File      $expected_file does not yet exist");
 
     my ($from, $to);
     $from = $tdirs[0];
@@ -140,7 +135,6 @@ SKIP: {
     for my $d (@expected_subdirs) {
         ok(-d $d, "Directory $d has been created");
     }
-    #ok(-f $expected_file, "File      $expected_file has been created");
 }
 
 {
@@ -181,10 +175,7 @@ SKIP: {
     for my $d (@expected_subdirs) {
         ok(-d $d, "Directory $d has been created");
     }
-    #TODO: {
-    #    local $TODO = 'Copying of file not yet working';
-        ok(-f $expected_file, "File      $expected_file has been created");
-    #}
+    ok(-f $expected_file, "File      $expected_file has been created");
 }
 
 {
@@ -203,8 +194,8 @@ SKIP: {
     mkpath($ldir) or die "Unable to mkpath $ldir: $!";
     ok(-d $ldir, "Directory $ldir created");
     my $fname = 'foo';
-    my $f1 = create_tfile($ldir, $fname);
-    ok(-f $f1, "File      $f1 created at bottom level");
+    my $f1 = create_tfile(File::Spec->catdir($tdirs[0], @subdir_names[0..1]), $fname);
+    ok(-f $f1, "File      $f1 created at non-bottom level");
     my @expected_subdirs = ();
     my $intermed = $tdirs[1];
     for my $d (@subdir_names) {
@@ -225,10 +216,7 @@ SKIP: {
     for my $d (@expected_subdirs) {
         ok(-d $d, "Directory $d has been created");
     }
-    TODO: {
-        local $TODO = 'Copying of file not yet working';
-        ok(-f $expected_file, "File      $expected_file has been created");
-    }
+    ok(-f $expected_file, "File      $expected_file has been created");
 }
 
 {
