@@ -371,24 +371,23 @@ print STDOUT "BBB: $end\n";
 #
         $level++;
 
-        my @files;
+        my @entities;
 #        if ( $] < 5.006 ) {
 #            opendir( STR_DH, $str ) or return;
-#            @files = grep( $_ ne '.' && $_ ne '..', readdir(STR_DH) );
+#            @entities = grep( $_ ne '.' && $_ ne '..', readdir(STR_DH) );
 #            closedir STR_DH;
 #        }
 #        else {
             opendir( my $str_dh, $str ) or return;
-            @files = grep( $_ ne '.' && $_ ne '..', readdir($str_dh) );
+            @entities = grep( $_ ne '.' && $_ ne '..', readdir($str_dh) );
             closedir $str_dh;
 #        }
 #
-#       for my $file (@files) {
-        for my $entity (@files) {
+        for my $entity (@entities) {
 print STDOUT "FFF: entity: $entity\n";
-            my ($file_ut) = $entity =~ m{ (.*) }xms;
-            my $org = File::Spec->catfile( $str, $file_ut );
-            my $new = File::Spec->catfile( $end, $file_ut );
+            my ($entity_ut) = $entity =~ m{ (.*) }xms;
+            my $org = File::Spec->catfile( $str, $entity_ut );
+            my $new = File::Spec->catfile( $end, $entity_ut );
 print STDOUT "GGG: ", join '|' => $org, $new, "\n";
 #            if ( -l $org && $CopyLink ) {
 #                my $target = readlink($org);
@@ -441,7 +440,7 @@ print STDOUT "GGG: ", join '|' => $org, $new, "\n";
 #                    $filen++;
 #                }
 #            }
-        } # End 'for' loop around @files
+        } # End 'for' loop around @entities
         $level--;
 #        chmod scalar( ( stat($str) )[2] ), $end if $KeepMode;
         1;
