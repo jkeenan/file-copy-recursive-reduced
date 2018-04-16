@@ -301,11 +301,11 @@ sub dircopy {
     #return unless _samecheck( $_zero, $_[1] );
     return unless _dev_ino_check( $_zero, $_[1] );
 
-#    if ( !-d $_zero || ( -e $_[1] && !-d $_[1] ) ) {
-#        $! = 20;
-#        return;
-#    }
-#
+    if ( !-d $_zero || ( -e $_[1] && !-d $_[1] ) ) {
+        $! = 20;
+        return;
+    }
+
 #    if ( !-d $_[1] ) {
 #        pathmk( $_[1], $NoFtlPth ) or return;
 #    }
@@ -316,6 +316,30 @@ sub dircopy {
 #            $_one = File::Spec->catdir( $_[1], $parts[$#parts] );
 #        }
 #    }
+
+	# dmuey on $NoFtlPth:
+
+	# Default is false. If set to true  rmdir(), mkdir(), and pathempty() calls
+	# in pathrm() and pathmk() do not return() on failure.  If its set to true they
+	# just silently go about their business regardless. This isn't a good idea but
+	# it's there if you want it.
+
+    # jkeenan:
+    # If the second argument is not a directory ...
+    #  ... I don't want to support $NoFtlPth;
+    #  ... my version of pathmk() only takes 1 argument.
+    #  ... then, create that directory now (the top-level 'to')
+    if ( !-d $_[1] ) {
+        pathmk( $_[1] ) or return;
+    }
+    # If the second argument is an existing directory ...
+    # ... $globstar false is the typical case, i.e., no '/*' at end of 2nd argument
+    # ... so what is $CPRFComp? 
+    # ... It appears it's a very complicated effort to emulate 'cp -rf'
+    # ... I don't want to support this complexity.
+    # ... hence, the 'else' block just goes away
+
+
 #    my $baseend = $_one;
 #    my $level   = 0;
     my $filen   = 0;
