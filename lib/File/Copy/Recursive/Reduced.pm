@@ -260,15 +260,18 @@ sub dircopy {
     my %dirs_seen = ();
     my @dirs_needed = ();
     my $wanted = sub {
-
         if (-d _) {
             my $d = $File::Find::dir;
             my $e = $d;
+#print STDOUT "QQQ: In a directory: $d\n";
             $e =~ s{^\Q$orig\E/(.*)}{$1};
+#print STDOUT "RRR: In a directory: $e\n";
             unless ($dirs_seen{$d}) {
                 unless ($e eq $orig) {
                     my $copy_dir = File::Spec->catdir($new, $e);
+#print STDOUT "SSS: copy_dir:       $copy_dir\n";
                     unless ($dirs_seen{$e}) {
+#print STDOUT "TTT: copy_dir qual:  $copy_dir\n";
                         $dirs_seen{$e} = $copy_dir;
                         push @dirs_needed, $copy_dir;
                     }
@@ -283,7 +286,7 @@ sub dircopy {
             $files_seen{$f} = $copy_file
                 unless $files_seen{$g};
         }
-    };
+    }; # END definition of callback $wanted
 
     find($wanted, ($orig));
 
