@@ -384,11 +384,11 @@ sub dircopy {
 #        }
 #
         for my $entity (@entities) {
-print STDOUT "FFF: entity: $entity\n";
+#print STDOUT "FFF: entity: $entity\n";
             my ($entity_ut) = $entity =~ m{ (.*) }xms;
             my $org = File::Spec->catfile( $str, $entity_ut );
             my $new = File::Spec->catfile( $end, $entity_ut );
-print STDOUT "GGG: ", join '|' => $org, $new, "\n";
+#print STDOUT "GGG: ", join '|' => $org, $new, "\n";
 #            if ( -l $org && $CopyLink ) {
 #                my $target = readlink($org);
 #                ($target) = $target =~ m/(.*)/;    # mass-untaint is OK since we have to allow what the file system does

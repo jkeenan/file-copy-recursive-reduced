@@ -235,3 +235,128 @@ SKIP: {
     $rv = dircopy($from, $to);
     ok(defined $rv, "dircopy() returned defined value when first argument ends with '/*'");
 }
+
+my @dirnames = ( qw|
+    able baker camera dogtag elmore
+    fargo golfer hatrack impish jolt
+    karma lily mandate namesake oleo
+    partner quorum robot sterling tamarack
+    ultra victor windy xray yellow zebra
+| );
+
+sub basic_tests {
+    my @dirnames = @_;
+    {
+        note("Multiple directories; no files");
+        my ($tdir, $tdir2, $old, $oldtree, $new, $rv, $expected);
+        my (@created);
+        my @subdirs = @dirnames[0..4];
+    
+        # Prepare left side
+        $tdir   = tempdir( CLEANUP => 1 );
+        $old        = File::Spec->catdir($tdir);
+        $oldtree    = File::Spec->catdir($tdir, @subdirs);
+        @created = mkpath($oldtree, { mode => 0711 });
+        die "Unable to create directory $oldtree for testing: $!" unless -d $oldtree;
+        ok(-d $oldtree, "Created original directory tree for testing");
+    
+        # Prepare right side
+        $tdir2  = File::Spec->catdir($tdir, 'new_dir');
+        $expected   = File::Spec->catdir($tdir2, @subdirs);
+    
+        # Test
+        print STDOUT "AAA: 1st: $old\n";
+        print STDOUT "     2nd: $tdir2\n";
+# TODO: Avoid Deep Recursion!
+#        $rv = dircopy($old, $tdir2);
+#        ok($rv, "dircopy() returned true value");
+#        ok(-d $tdir2, "dircopy(): directory $tdir2 created");
+#        ok(-d File::Spec->catdir($tdir2, @subdirs[0..4]), "dircopy(): directory XXXXXX created");
+#        ok(-d $expected, "dircopy(): directory $expected created");
+    }
+
+#    {
+#        note("Multiple directories; files at bottom level");
+#        my ($tdir, $tdir2, $old, $oldtree, $new, $rv, $expected);
+#        my (@created, @basenames);
+#        my @subdirs = @dirnames[5..7];
+#    
+#        # Prepare left side
+#        $tdir   = tempdir( CLEANUP => 1 );
+#        $old        = File::Spec->catdir($tdir);
+#        $oldtree    = File::Spec->catdir($tdir, @subdirs);
+#        @created = mkpath($oldtree, { mode => 0711 });
+#        die "Unable to create directory $oldtree for testing: $!" unless -d $oldtree;
+#        ok(-d $oldtree, "Created $oldtree for testing");
+#        @basenames = qw| foo bar |;
+#        for my $b (@basenames) {
+#            my $f = touch_a_file_and_test(File::Spec->catfile($oldtree, $b));
+#        }
+#    
+#        # Prepare right side
+#        $tdir2  = File::Spec->catdir($tdir, 'new_dir');
+#        $expected   = File::Spec->catdir($tdir2, @subdirs);
+#    
+#        # Test
+#        print STDOUT "BBB: 1st: $old\n";
+#        print STDOUT "     2nd: $tdir2\n";
+#        $rv = dircopy($old, $tdir2);
+#        ok($rv, "dircopy() returned true value");
+#        ok(-d $expected, "dircopy(): directory $expected created");
+#        # test for creation of files
+#        for my $b (@basenames) {
+#            my $f = File::Spec->catfile($expected, $b);
+#            ok(-f $f, "dircopy(): file $f created");
+#        }
+#    }
+#
+#    {
+#        note("Multiple directories; files at intermediate levels");
+#        my ($tdir, $tdir2, $old, $oldtree, $new, $rv, $expected);
+#        my (@created);
+#        my @subdirs = @dirnames[8..11];
+#    
+#        # Prepare left side
+#        $tdir   = tempdir( CLEANUP => 1 );
+#        $old        = File::Spec->catdir($tdir);
+#        $oldtree    = File::Spec->catdir($tdir, @subdirs);
+#        @created = mkpath($oldtree, { mode => 0711 });
+#        die "Unable to create directory $oldtree for testing: $!" unless -d $oldtree;
+#        ok(-d $oldtree, "Created $oldtree for testing");
+#        my $f = File::Spec->catfile(@subdirs[0..1], 'foo');
+#        my $g = File::Spec->catfile(@subdirs[0..2], 'bar');
+#        my $ff = touch_a_file_and_test(File::Spec->catfile($old, $f));
+#        my $gg = touch_a_file_and_test(File::Spec->catfile($old, $f));
+#    
+#        # Prepare right side
+#        $tdir2  = File::Spec->catdir($tdir, 'new_dir');
+#        $expected   = File::Spec->catdir($tdir2, @subdirs);
+#    
+#        # Test
+#        print STDOUT "CCC: 1st: $old\n";
+#        print STDOUT "     2nd: $tdir2\n";
+#        $rv = dircopy($old, $tdir2);
+#        ok($rv, "dircopy() returned true value");
+#        ok(-d $expected, "dircopy(): directory $expected created");
+#        # test for creation of files
+#        for my $b ($ff, $gg) {
+#            my $c = File::Spec->catfile($expected, $b);
+#            ok(-f $c, "dircopy(): file $c created");
+#        }
+#    }
+} # END definition of basic_tests()
+
+sub touch_a_file_and_test {
+    my $f = shift;
+    open my $OUT, '>', $f or die "Unable to open $f for writing";
+    print $OUT "\n";
+    close $OUT or die "Unable to close $f after writing";
+    ok(-f $f, "Created $f for testing");
+    return $f;
+}
+
+{
+    note("Basic tests of File::Copy::Recursive::Reduced::dircopy()");
+    basic_tests(@dirnames);
+}
+
