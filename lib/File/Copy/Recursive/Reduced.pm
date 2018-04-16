@@ -241,66 +241,130 @@ of Perl toolchain modules and their test suites.
 =cut
 
 sub dircopy {
-    my ($orig, $new) = @_;
-    return if @_ != 2;
-    return unless _samecheck($orig, $new);
+    if ( $RMTrgDir && -d $_[1] ) {
+        if ( $RMTrgDir == 1 ) {
+            pathrmdir( $_[1] ) or carp "\$RMTrgDir failed: $!";
+        }
+        else {
+            pathrmdir( $_[1] ) or return;
+        }
+    }
+    my $globstar = 0;
+    my $_zero    = $_[0];
+    my $_one     = $_[1];
+    if ( substr( $_zero, ( 1 * -1 ), 1 ) eq '*' ) {
+        $globstar = 1;
+        $_zero = substr( $_zero, 0, ( length($_zero) - 1 ) );
+    }
 
-    if ( !-d $orig  || ( -e $new && !-d $new ) ) {
+    $samecheck->( $_zero, $_[1] ) or return;
+    if ( !-d $_zero || ( -e $_[1] && !-d $_[1] ) ) {
         $! = 20;
         return;
     }
 
-    my $count = 0;
-    unless (-d $new) {
-        mkpath($new) or die "Unable to mkpath $new: $!";
-        $count++;
+    if ( !-d $_[1] ) {
+        pathmk( $_[1], $NoFtlPth ) or return;
     }
+    else {
+        if ( $CPRFComp && !$globstar ) {
+            my @parts = File::Spec->splitdir($_zero);
+            while ( $parts[$#parts] eq '' ) { pop @parts; }
+            $_one = File::Spec->catdir( $_[1], $parts[$#parts] );
+        }
+    }
+    my $baseend = $_one;
+    my $level   = 0;
+    my $filen   = 0;
+    my $dirn    = 0;
 
-    my %files_seen = ();
-    my %dirs_seen = ();
-    my @dirs_needed = ();
-    my $wanted = sub {
-        if (-d _) {
-            my $d = $File::Find::dir;
-            my $e = $d;
-#print STDOUT "QQQ: In a directory: $d\n";
-            $e =~ s{^\Q$orig\E/(.*)}{$1};
-#print STDOUT "RRR: In a directory: $e\n";
-            unless ($dirs_seen{$d}) {
-                unless ($e eq $orig) {
-                    my $copy_dir = File::Spec->catdir($new, $e);
-#print STDOUT "SSS: copy_dir:       $copy_dir\n";
-                    unless ($dirs_seen{$e}) {
-#print STDOUT "TTT: copy_dir qual:  $copy_dir\n";
-                        $dirs_seen{$e} = $copy_dir;
-                        push @dirs_needed, $copy_dir;
+    my $recurs;    #must be my()ed before sub {} since it calls itself
+    $recurs = sub {
+        my ( $str, $end, $buf ) = @_;
+        $filen++ if $end eq $baseend;
+        $dirn++  if $end eq $baseend;
+
+        $DirPerms = oct($DirPerms) if substr( $DirPerms, 0, 1 ) eq '0';
+        mkdir( $end, $DirPerms ) or return if !-d $end;
+        if ( $MaxDepth && $MaxDepth =~ m/^\d+$/ && $level >= $MaxDepth ) {
+            chmod scalar( ( stat($str) )[2] ), $end if $KeepMode;
+            return ( $filen, $dirn, $level ) if wantarray;
+            return $filen;
+        }
+
+        $level++;
+
+        my @files;
+        if ( $] < 5.006 ) {
+            opendir( STR_DH, $str ) or return;
+            @files = grep( $_ ne '.' && $_ ne '..', readdir(STR_DH) );
+            closedir STR_DH;
+        }
+        else {
+            opendir( my $str_dh, $str ) or return;
+            @files = grep( $_ ne '.' && $_ ne '..', readdir($str_dh) );
+            closedir $str_dh;
+        }
+
+        for my $file (@files) {
+            my ($file_ut) = $file =~ m{ (.*) }xms;
+            my $org = File::Spec->catfile( $str, $file_ut );
+            my $new = File::Spec->catfile( $end, $file_ut );
+            if ( -l $org && $CopyLink ) {
+                my $target = readlink($org);
+                ($target) = $target =~ m/(.*)/;    # mass-untaint is OK since we have to allow what the file system does
+                carp "Copying a symlink ($org) whose target does not exist"
+                  if !-e $target && $BdTrgWrn;
+                unlink $new if -l $new;
+                symlink( $target, $new ) or return;
+            }
+            elsif ( -d $org ) {
+                my $rc;
+                if ( !-w $org && $KeepMode ) {
+                    local $KeepMode = 0;
+                    carp "Copying readonly directory ($org); mode of its contents may not be preserved.";
+                    $rc = $recurs->( $org, $new, $buf ) if defined $buf;
+                    $rc = $recurs->( $org, $new ) if !defined $buf;
+                    chmod scalar( ( stat($org) )[2] ), $new;
+                }
+                else {
+                    $rc = $recurs->( $org, $new, $buf ) if defined $buf;
+                    $rc = $recurs->( $org, $new ) if !defined $buf;
+                }
+                if ( !$rc ) {
+                    if ($SkipFlop) {
+                        next;
                     }
+                    else {
+                        return;
+                    }
+                }
+                $filen++;
+                $dirn++;
+            }
+            else {
+                if ( $ok_todo_asper_condcopy->($org) ) {
+                    if ($SkipFlop) {
+                        fcopy( $org, $new, $buf ) or next if defined $buf;
+                        fcopy( $org, $new ) or next if !defined $buf;
+                    }
+                    else {
+                        fcopy( $org, $new, $buf ) or return if defined $buf;
+                        fcopy( $org, $new ) or return if !defined $buf;
+                    }
+                    chmod scalar( ( stat($org) )[2] ), $new if $KeepMode;
+                    $filen++;
                 }
             }
         }
-        if (-f $_) {
-            my $f = File::Spec->catfile($File::Find::name);
-            my $g = $f;
-            $g =~ s{^\Q$orig\E/(.*)}{$1};
-            my $copy_file = File::Spec->catfile($new, $g);
-            $files_seen{$f} = $copy_file
-                unless $files_seen{$g};
-        }
-    }; # END definition of callback $wanted
+        $level--;
+        chmod scalar( ( stat($str) )[2] ), $end if $KeepMode;
+        1;
 
-    find($wanted, ($orig));
+    };
 
-    for my $d (@dirs_needed) {
-        mkpath $d or die "Unable to mkpath $d: $!";
-        $count++;
-    }
-    for my $f (sort keys %files_seen) {
-        copy($f => $files_seen{$f})
-            or die "Unable to copy $f to $files_seen{$f}: $!";
-        $count++;
-    }
-
-    return $count;
+    $recurs->( $_zero, $_one, $_[2] ) or return;
+    return wantarray ? ( $filen, $dirn, $level ) : $filen;
 }
 
 sub _samecheck {
