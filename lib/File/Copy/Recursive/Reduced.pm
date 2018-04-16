@@ -242,38 +242,24 @@ of Perl toolchain modules and their test suites.
 
 sub dircopy {
 
-    # jkeenan:
-    # Since I know I don't want to support the 3-arg version of dircopy, i.e.,
     # I'm not supporting the buffer limitation, at this point I can insert a
-    # check for the correct number of arguments:  2
+    # Check for the correct number of arguments:  2
+    # FCR2 dircopy does not support buffer limit as third argument
 
     return unless @_ == 2;
 
-#    if ( $RMTrgDir && -d $_[1] ) {
-#        if ( $RMTrgDir == 1 ) {
-#            pathrmdir( $_[1] ) or carp "\$RMTrgDir failed: $!";
-#        }
-#        else {
-#            pathrmdir( $_[1] ) or return;
-#        }
-#    }
-
-# dmuey:
-#Removing existing target file or directory before copying.
-#
-#This can be done by setting $File::Copy::Recursive::RMTrgFil or $File::Copy::Recursive::RMTrgDir for file or directory behavior respectively.
-
-# jkeenan:
-    # I don't want to support this functionality as it's highly unlinkely to
-    # be needed in test suites.
-    # Hence I think I can omit this block entirely (leave it commented out for
-    # now).
-
     # Check the definedness and string inequality of the arguments now;
-    # Otherwise, if $_[0] is not defined, I'll get an uninit value warning in
-    # the first line that calls 'substr' below.
+    # Failure to do it now means that if $_[0] is not defined, you'll get an
+    # uninitalized value warning in the first line that calls 'substr' below.
 
     return unless _basic_samecheck(@_);
+
+    # See local file globstar-investigation.pl
+    # What the block above does is to trim the 'from' argument so that, if user
+    # said 'dircopy(/path/to/directory/*, /path/to/copy)', the first argument
+    # is effectively reduced to '/path/to/directory/' but inside $globstar is
+    # set to true.  Have to see what impact of $globstar true is.
+
     my $globstar = 0;
     my $_zero    = $_[0];
     my $_one     = $_[1];
@@ -282,23 +268,15 @@ sub dircopy {
         $_zero = substr( $_zero, 0, ( length($_zero) - 1 ) );
     }
 
-    # jkeenan:
-    # See ~/learn/perl/file-copy-recursive-reduced/globstar-investigation.pl
-    # What the block above does is to trim the 'from' argument so that, if user
-    # said 'dircopy(/path/to/directory/*, /path/to/copy)', the first argument
-    # is effectively reduced to '/path/to/directory/' but inside $globstar is
-    # set to true.  Have to see what impact of $globstar true is.
+    # Note also that, in the above, $_[0] and $_[1], while assigned to
+    # variables, are not shifted-in.  Hence they retain their original values.
+    # TODO: Investigate whether replacing $_[1] from this point forward with a
+    # 'my' variable would be harmful.
 
-    # Note also that $_[0] and $_[1], while assigned to variables, are not
-    # shifted-in.  Hence they retain their original values.
+    # Both arguments must now be defined (though not necessarily true -- yet);
+    # they can't be equal; they can't be "dev-ino" equal on non-Win32 systems.
+    # Verify that.
 
-
-#    $samecheck->( $_zero, $_[1] ) or return;
-    # jkeenan:  I'll replace this with _samecheck()
-    # both arguments must be defined (though not necessarily true -- yet);
-    # they can't be equal, they can't be "dev-ino" equal on non-Win32 systems
-
-    #return unless _samecheck( $_zero, $_[1] );
     return unless _dev_ino_check( $_zero, $_[1] );
 
     if ( !-d $_zero || ( -e $_[1] && !-d $_[1] ) ) {
@@ -306,39 +284,14 @@ sub dircopy {
         return;
     }
 
-#    if ( !-d $_[1] ) {
-#        pathmk( $_[1], $NoFtlPth ) or return;
-#    }
-#    else {
-#        if ( $CPRFComp && !$globstar ) {
-#            my @parts = File::Spec->splitdir($_zero);
-#            while ( $parts[$#parts] eq '' ) { pop @parts; }
-#            $_one = File::Spec->catdir( $_[1], $parts[$#parts] );
-#        }
-#    }
+    # If the second argument is not an already existing directory,
+    # then, create that directory now (the top-level 'to').
 
-	# dmuey on $NoFtlPth:
-
-	# Default is false. If set to true  rmdir(), mkdir(), and pathempty() calls
-	# in pathrm() and pathmk() do not return() on failure.  If its set to true they
-	# just silently go about their business regardless. This isn't a good idea but
-	# it's there if you want it.
-
-    # jkeenan:
-    # If the second argument is not a directory ...
-    #  ... I don't want to support $NoFtlPth;
-    #  ... my version of pathmk() only takes 1 argument.
-    #  ... then, create that directory now (the top-level 'to')
     if ( !-d $_[1] ) {
         pathmk( $_[1] ) or return;
     }
     # If the second argument is an existing directory ...
     # ... $globstar false is the typical case, i.e., no '/*' at end of 2nd argument
-    # ... so what is $CPRFComp? 
-    # ... It appears it's a very complicated effort to emulate 'cp -rf'
-    # ... I don't want to support this complexity.
-    # ... hence, the 'else' block just goes away
-
 
     my $baseend = $_one;
     my $level   = 0;
@@ -347,48 +300,24 @@ sub dircopy {
 
     my $recurs;    #must be my()ed before sub {} since it calls itself
     $recurs = sub {
-#        my ( $str, $end, $buf ) = @_;
         my ( $str, $end ) = @_;
         $filen++ if $end eq $baseend;
         $dirn++  if $end eq $baseend;
 
-#        $DirPerms = oct($DirPerms) if substr( $DirPerms, 0, 1 ) eq '0';
-        # jkeenan: I'm setting our $DirPerms to 0777
-        # the line above won't be needed
-
-#        mkdir( $end, $DirPerms ) or return if !-d $end;
-#print STDOUT "AAA: $end\n";
-        mkdir( $end ) or return if !-d $end;
-#print STDOUT "BBB: $end\n";
         # On each pass of the recursive coderef, create the directory in the
         # 2nd argument or return (undef) if that does not succeed
 
-#        if ( $MaxDepth && $MaxDepth =~ m/^\d+$/ && $level >= $MaxDepth ) {
-#            chmod scalar( ( stat($str) )[2] ), $end if $KeepMode;
-#            return ( $filen, $dirn, $level ) if wantarray;
-#            return $filen;
-#        }
-#
+        mkdir( $end ) or return if !-d $end;
         $level++;
 
-        my @entities;
-#        if ( $] < 5.006 ) {
-#            opendir( STR_DH, $str ) or return;
-#            @entities = grep( $_ ne '.' && $_ ne '..', readdir(STR_DH) );
-#            closedir STR_DH;
-#        }
-#        else {
-            opendir( my $str_dh, $str ) or return;
-            @entities = grep( $_ ne '.' && $_ ne '..', readdir($str_dh) );
-            closedir $str_dh;
-#        }
-#
+        opendir( my $str_dh, $str ) or return;
+        my @entities = grep( $_ ne '.' && $_ ne '..', readdir($str_dh) );
+        closedir $str_dh;
+
         for my $entity (@entities) {
-#print STDOUT "FFF: entity: $entity\n";
             my ($entity_ut) = $entity =~ m{ (.*) }xms;
             my $org = File::Spec->catfile( $str, $entity_ut );
             my $new = File::Spec->catfile( $end, $entity_ut );
-#print STDOUT "GGG: ", join '|' => $org, $new, "\n";
 #            if ( -l $org && $CopyLink ) {
 #                my $target = readlink($org);
 #                ($target) = $target =~ m/(.*)/;    # mass-untaint is OK since we have to allow what the file system does
@@ -403,42 +332,22 @@ sub dircopy {
 #                if ( !-w $org && $KeepMode ) {
 #                    local $KeepMode = 0;
 #                    carp "Copying readonly directory ($org); mode of its contents may not be preserved.";
-##                    $rc = $recurs->( $org, $new, $buf ) if defined $buf;
 ##                    $rc = $recurs->( $org, $new ) if !defined $buf;
 #                    $rc = $recurs->( $org, $new );
 #                    chmod scalar( ( stat($org) )[2] ), $new;
 #                }
 #                else {
-##                    $rc = $recurs->( $org, $new, $buf ) if defined $buf;
 ##                    $rc = $recurs->( $org, $new ) if !defined $buf;
                     $rc = $recurs->( $org, $new );
 #                }
-                if ( !$rc ) {
-#                    if ($SkipFlop) {
-#                        next;
-#                    }
-#                    else {
-                        return;
-#                    }
-                }
+                return unless $rc;
                 $filen++;
                 $dirn++;
             }
             else {
-#                if ( $ok_todo_asper_condcopy->($org) ) {
-#                    if ($SkipFlop) {
-##                        fcopy( $org, $new, $buf ) or next if defined $buf;
-##                        fcopy( $org, $new ) or next if !defined $buf;
-#                        fcopy( $org, $new ) or next;
-#                    }
-#                    else {
-##                        fcopy( $org, $new, $buf ) or return if defined $buf;
-##                        fcopy( $org, $new ) or return if !defined $buf;
-                        fcopy( $org, $new ) or return;
-#                    }
-#                    chmod scalar( ( stat($org) )[2] ), $new if $KeepMode;
-                    $filen++;
-#                }
+                fcopy( $org, $new ) or return;
+#                chmod scalar( ( stat($org) )[2] ), $new if $KeepMode;
+                $filen++;
             }
         } # End 'for' loop around @entities
         $level--;
@@ -446,8 +355,7 @@ sub dircopy {
         1;
 
     }; # END definition of $recurs
-#
-#    $recurs->( $_zero, $_one, $_[2] ) or return;
+
     $recurs->( $_zero, $_one ) or return;
 #    return wantarray ? ( $filen, $dirn, $level ) : $filen;
     return $filen;
