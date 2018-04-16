@@ -20,12 +20,12 @@ use Path::Tiny;
 sub create_tfile {
     my $tdir = shift;
     my $filename = shift || 'old';
-    my $old = File::Spec->catfile($tdir, $filename);
-    open my $OUT, '>', $old or die "Unable to open for writing: $!";
+    my $f = File::Spec->catfile($tdir, $filename);
+    open my $OUT, '>', $f or die "Unable to open for writing: $!";
     binmode $OUT;
     print $OUT "\n";
     close $OUT or die "Unable to close after writing: $!";
-    return $old;
+    return $f;
 }
 
 sub create_tfile_and_name_for_new_file_in_same_dir {

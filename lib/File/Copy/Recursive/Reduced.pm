@@ -241,14 +241,39 @@ of Perl toolchain modules and their test suites.
 =cut
 
 sub dircopy {
-    if ( $RMTrgDir && -d $_[1] ) {
-        if ( $RMTrgDir == 1 ) {
-            pathrmdir( $_[1] ) or carp "\$RMTrgDir failed: $!";
-        }
-        else {
-            pathrmdir( $_[1] ) or return;
-        }
-    }
+
+    # jkeenan:
+    # Since I know I don't want to support the 3-arg version of dircopy, i.e.,
+    # I'm not supporting the buffer limitation, at this point I can insert a
+    # check for the correct number of arguments:  2
+
+    return unless @_ == 2;
+
+#    if ( $RMTrgDir && -d $_[1] ) {
+#        if ( $RMTrgDir == 1 ) {
+#            pathrmdir( $_[1] ) or carp "\$RMTrgDir failed: $!";
+#        }
+#        else {
+#            pathrmdir( $_[1] ) or return;
+#        }
+#    }
+
+# dmuey:
+#Removing existing target file or directory before copying.
+#
+#This can be done by setting $File::Copy::Recursive::RMTrgFil or $File::Copy::Recursive::RMTrgDir for file or directory behavior respectively.
+
+# jkeenan:
+    # I don't want to support this functionality as it's highly unlinkely to
+    # be needed in test suites.
+    # Hence I think I can omit this block entirely (leave it commented out for
+    # now).
+
+    # Check the definedness and string inequality of the arguments now;
+    # Otherwise, if $_[0] is not defined, I'll get an uninit value warning in
+    # the first line that calls 'substr' below.
+
+    return unless _basic_samecheck(@_);
     my $globstar = 0;
     my $_zero    = $_[0];
     my $_one     = $_[1];
@@ -257,136 +282,179 @@ sub dircopy {
         $_zero = substr( $_zero, 0, ( length($_zero) - 1 ) );
     }
 
-    $samecheck->( $_zero, $_[1] ) or return;
-    if ( !-d $_zero || ( -e $_[1] && !-d $_[1] ) ) {
-        $! = 20;
+    # jkeenan:
+    # See ~/learn/perl/file-copy-recursive-reduced/globstar-investigation.pl
+    # What the block above does is to trim the 'from' argument so that, if user
+    # said 'dircopy(/path/to/directory/*, /path/to/copy)', the first argument
+    # is effectively reduced to '/path/to/directory/' but inside $globstar is
+    # set to true.  Have to see what impact of $globstar true is.
+
+    # Note also that $_[0] and $_[1], while assigned to variables, are not
+    # shifted-in.  Hence they retain their original values.
+
+
+#    $samecheck->( $_zero, $_[1] ) or return;
+    # jkeenan:  I'll replace this with _samecheck()
+    # both arguments must be defined (though not necessarily true -- yet);
+    # they can't be equal, they can't be "dev-ino" equal on non-Win32 systems
+
+    #return unless _samecheck( $_zero, $_[1] );
+    return unless _dev_ino_check( $_zero, $_[1] );
+
+#    if ( !-d $_zero || ( -e $_[1] && !-d $_[1] ) ) {
+#        $! = 20;
+#        return;
+#    }
+#
+#    if ( !-d $_[1] ) {
+#        pathmk( $_[1], $NoFtlPth ) or return;
+#    }
+#    else {
+#        if ( $CPRFComp && !$globstar ) {
+#            my @parts = File::Spec->splitdir($_zero);
+#            while ( $parts[$#parts] eq '' ) { pop @parts; }
+#            $_one = File::Spec->catdir( $_[1], $parts[$#parts] );
+#        }
+#    }
+#    my $baseend = $_one;
+#    my $level   = 0;
+    my $filen   = 0;
+#    my $dirn    = 0;
+#
+#    my $recurs;    #must be my()ed before sub {} since it calls itself
+#    $recurs = sub {
+#        my ( $str, $end, $buf ) = @_;
+#        $filen++ if $end eq $baseend;
+#        $dirn++  if $end eq $baseend;
+#
+#        $DirPerms = oct($DirPerms) if substr( $DirPerms, 0, 1 ) eq '0';
+#        mkdir( $end, $DirPerms ) or return if !-d $end;
+#        if ( $MaxDepth && $MaxDepth =~ m/^\d+$/ && $level >= $MaxDepth ) {
+#            chmod scalar( ( stat($str) )[2] ), $end if $KeepMode;
+#            return ( $filen, $dirn, $level ) if wantarray;
+#            return $filen;
+#        }
+#
+#        $level++;
+#
+#        my @files;
+#        if ( $] < 5.006 ) {
+#            opendir( STR_DH, $str ) or return;
+#            @files = grep( $_ ne '.' && $_ ne '..', readdir(STR_DH) );
+#            closedir STR_DH;
+#        }
+#        else {
+#            opendir( my $str_dh, $str ) or return;
+#            @files = grep( $_ ne '.' && $_ ne '..', readdir($str_dh) );
+#            closedir $str_dh;
+#        }
+#
+#        for my $file (@files) {
+#            my ($file_ut) = $file =~ m{ (.*) }xms;
+#            my $org = File::Spec->catfile( $str, $file_ut );
+#            my $new = File::Spec->catfile( $end, $file_ut );
+#            if ( -l $org && $CopyLink ) {
+#                my $target = readlink($org);
+#                ($target) = $target =~ m/(.*)/;    # mass-untaint is OK since we have to allow what the file system does
+#                carp "Copying a symlink ($org) whose target does not exist"
+#                  if !-e $target && $BdTrgWrn;
+#                unlink $new if -l $new;
+#                symlink( $target, $new ) or return;
+#            }
+#            elsif ( -d $org ) {
+#                my $rc;
+#                if ( !-w $org && $KeepMode ) {
+#                    local $KeepMode = 0;
+#                    carp "Copying readonly directory ($org); mode of its contents may not be preserved.";
+#                    $rc = $recurs->( $org, $new, $buf ) if defined $buf;
+#                    $rc = $recurs->( $org, $new ) if !defined $buf;
+#                    chmod scalar( ( stat($org) )[2] ), $new;
+#                }
+#                else {
+#                    $rc = $recurs->( $org, $new, $buf ) if defined $buf;
+#                    $rc = $recurs->( $org, $new ) if !defined $buf;
+#                }
+#                if ( !$rc ) {
+#                    if ($SkipFlop) {
+#                        next;
+#                    }
+#                    else {
+#                        return;
+#                    }
+#                }
+#                $filen++;
+#                $dirn++;
+#            }
+#            else {
+#                if ( $ok_todo_asper_condcopy->($org) ) {
+#                    if ($SkipFlop) {
+#                        fcopy( $org, $new, $buf ) or next if defined $buf;
+#                        fcopy( $org, $new ) or next if !defined $buf;
+#                    }
+#                    else {
+#                        fcopy( $org, $new, $buf ) or return if defined $buf;
+#                        fcopy( $org, $new ) or return if !defined $buf;
+#                    }
+#                    chmod scalar( ( stat($org) )[2] ), $new if $KeepMode;
+#                    $filen++;
+#                }
+#            }
+#        }
+#        $level--;
+#        chmod scalar( ( stat($str) )[2] ), $end if $KeepMode;
+#        1;
+#
+#    };
+#
+#    $recurs->( $_zero, $_one, $_[2] ) or return;
+#    return wantarray ? ( $filen, $dirn, $level ) : $filen;
+    return $filen;
+}
+
+sub _basic_samecheck {
+    my ($from, $to) = @_;
+    return if !defined $from || !defined $to;
+    return if $from eq $to;
+    return 1;
+}
+
+sub _dev_ino_check {
+    my ($from, $to) = @_;
+    return 1 if $^O eq 'MSWin32';
+
+    # perldoc perlport: "(Win32) "dev" and "ino" are not meaningful."
+    # Will probably have to add restrictions for VMS and other OSes.
+    my $one = join( '-', ( stat $from )[ 0, 1 ] ) || '';
+    my $two = join( '-', ( stat $to   )[ 0, 1 ] ) || '';
+    if ( $one and $one eq $two ) {
+        warn "$from and $to are identical";
         return;
     }
-
-    if ( !-d $_[1] ) {
-        pathmk( $_[1], $NoFtlPth ) or return;
-    }
-    else {
-        if ( $CPRFComp && !$globstar ) {
-            my @parts = File::Spec->splitdir($_zero);
-            while ( $parts[$#parts] eq '' ) { pop @parts; }
-            $_one = File::Spec->catdir( $_[1], $parts[$#parts] );
-        }
-    }
-    my $baseend = $_one;
-    my $level   = 0;
-    my $filen   = 0;
-    my $dirn    = 0;
-
-    my $recurs;    #must be my()ed before sub {} since it calls itself
-    $recurs = sub {
-        my ( $str, $end, $buf ) = @_;
-        $filen++ if $end eq $baseend;
-        $dirn++  if $end eq $baseend;
-
-        $DirPerms = oct($DirPerms) if substr( $DirPerms, 0, 1 ) eq '0';
-        mkdir( $end, $DirPerms ) or return if !-d $end;
-        if ( $MaxDepth && $MaxDepth =~ m/^\d+$/ && $level >= $MaxDepth ) {
-            chmod scalar( ( stat($str) )[2] ), $end if $KeepMode;
-            return ( $filen, $dirn, $level ) if wantarray;
-            return $filen;
-        }
-
-        $level++;
-
-        my @files;
-        if ( $] < 5.006 ) {
-            opendir( STR_DH, $str ) or return;
-            @files = grep( $_ ne '.' && $_ ne '..', readdir(STR_DH) );
-            closedir STR_DH;
-        }
-        else {
-            opendir( my $str_dh, $str ) or return;
-            @files = grep( $_ ne '.' && $_ ne '..', readdir($str_dh) );
-            closedir $str_dh;
-        }
-
-        for my $file (@files) {
-            my ($file_ut) = $file =~ m{ (.*) }xms;
-            my $org = File::Spec->catfile( $str, $file_ut );
-            my $new = File::Spec->catfile( $end, $file_ut );
-            if ( -l $org && $CopyLink ) {
-                my $target = readlink($org);
-                ($target) = $target =~ m/(.*)/;    # mass-untaint is OK since we have to allow what the file system does
-                carp "Copying a symlink ($org) whose target does not exist"
-                  if !-e $target && $BdTrgWrn;
-                unlink $new if -l $new;
-                symlink( $target, $new ) or return;
-            }
-            elsif ( -d $org ) {
-                my $rc;
-                if ( !-w $org && $KeepMode ) {
-                    local $KeepMode = 0;
-                    carp "Copying readonly directory ($org); mode of its contents may not be preserved.";
-                    $rc = $recurs->( $org, $new, $buf ) if defined $buf;
-                    $rc = $recurs->( $org, $new ) if !defined $buf;
-                    chmod scalar( ( stat($org) )[2] ), $new;
-                }
-                else {
-                    $rc = $recurs->( $org, $new, $buf ) if defined $buf;
-                    $rc = $recurs->( $org, $new ) if !defined $buf;
-                }
-                if ( !$rc ) {
-                    if ($SkipFlop) {
-                        next;
-                    }
-                    else {
-                        return;
-                    }
-                }
-                $filen++;
-                $dirn++;
-            }
-            else {
-                if ( $ok_todo_asper_condcopy->($org) ) {
-                    if ($SkipFlop) {
-                        fcopy( $org, $new, $buf ) or next if defined $buf;
-                        fcopy( $org, $new ) or next if !defined $buf;
-                    }
-                    else {
-                        fcopy( $org, $new, $buf ) or return if defined $buf;
-                        fcopy( $org, $new ) or return if !defined $buf;
-                    }
-                    chmod scalar( ( stat($org) )[2] ), $new if $KeepMode;
-                    $filen++;
-                }
-            }
-        }
-        $level--;
-        chmod scalar( ( stat($str) )[2] ), $end if $KeepMode;
-        1;
-
-    };
-
-    $recurs->( $_zero, $_one, $_[2] ) or return;
-    return wantarray ? ( $filen, $dirn, $level ) : $filen;
+    return 1;
 }
 
 sub _samecheck {
     # Adapted from File::Copy::Recursive
     my ($from, $to) = @_;
-    return if !defined $from || !defined $to;
-    return if $from eq $to;
+    #return if !defined $from || !defined $to;
+    #return if $from eq $to;
+    return unless _basic_samecheck($from, $to);
 
     # TODO:  Explore whether we should check (-e $from) here.
     # If we don't have a starting point, it shouldn't make any sense to go
     # farther.
 
-    if ($^O ne 'MSWin32') {
-        # perldoc perlport: "(Win32) "dev" and "ino" are not meaningful."
-        # Will probably have to add restrictions for VMS and other OSes.
-        my $one = join( '-', ( stat $from )[ 0, 1 ] ) || '';
-        my $two = join( '-', ( stat $to   )[ 0, 1 ] ) || '';
-        if ( $one and $one eq $two ) {
-            warn "$from and $to are identical";
-            return;
-        }
-    }
+#    if ($^O ne 'MSWin32') {
+#        # perldoc perlport: "(Win32) "dev" and "ino" are not meaningful."
+#        # Will probably have to add restrictions for VMS and other OSes.
+#        my $one = join( '-', ( stat $from )[ 0, 1 ] ) || '';
+#        my $two = join( '-', ( stat $to   )[ 0, 1 ] ) || '';
+#        if ( $one and $one eq $two ) {
+#            warn "$from and $to are identical";
+#            return;
+#        }
+#    }
+    return unless _dev_ino_check($from, $to);
     return 1;
 }
 
