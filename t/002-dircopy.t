@@ -181,6 +181,50 @@ SKIP: {
     for my $d (@expected_subdirs) {
         ok(-d $d, "Directory $d has been created");
     }
+    #TODO: {
+    #    local $TODO = 'Copying of file not yet working';
+        ok(-f $expected_file, "File      $expected_file has been created");
+    #}
+}
+
+{
+    note("Copying of subdirs containing 1 file at non-bottom level");
+    my $topdir = tempdir(CLEANUP => 1);
+    my @tdir_names = ('xray', 'yeller');
+    my @tdirs = ();
+    for my $d (@tdir_names) {
+        my $s = File::Spec->catdir($topdir, $d);
+        mkpath($s) or die "Unable to mkpath $s: $!";
+        ok(-d $s, "Directory $s created");
+        push @tdirs, $s;
+    }
+    my @subdir_names = ('alpha', 'beta', 'gamma');
+    my $ldir = File::Spec->catdir($tdirs[0], @subdir_names);
+    mkpath($ldir) or die "Unable to mkpath $ldir: $!";
+    ok(-d $ldir, "Directory $ldir created");
+    my $fname = 'foo';
+    my $f1 = create_tfile($ldir, $fname);
+    ok(-f $f1, "File      $f1 created at bottom level");
+    my @expected_subdirs = ();
+    my $intermed = $tdirs[1];
+    for my $d (@subdir_names) {
+        $intermed = File::Spec->catdir($intermed, $d);
+        push @expected_subdirs, $intermed;
+    }
+    for my $d (@expected_subdirs) {
+        ok(! -d $d, "Directory $d does not yet exist");
+    }
+    my $expected_file = File::Spec->catfile($expected_subdirs[-2], $fname);
+    ok(! -f $expected_file, "File      $expected_file does not yet exist");
+
+    my ($from, $to);
+    $from = $tdirs[0];
+    $to = $tdirs[1];
+    $rv = dircopy($from, $to);
+    ok(defined $rv, "dircopy() returned defined value");
+    for my $d (@expected_subdirs) {
+        ok(-d $d, "Directory $d has been created");
+    }
     TODO: {
         local $TODO = 'Copying of file not yet working';
         ok(-f $expected_file, "File      $expected_file has been created");

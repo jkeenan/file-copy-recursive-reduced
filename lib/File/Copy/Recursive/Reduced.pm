@@ -424,7 +424,7 @@ print STDOUT "GGG: ", join '|' => $org, $new, "\n";
                 $filen++;
                 $dirn++;
             }
-#            else {
+            else {
 #                if ( $ok_todo_asper_condcopy->($org) ) {
 #                    if ($SkipFlop) {
 ##                        fcopy( $org, $new, $buf ) or next if defined $buf;
@@ -434,12 +434,12 @@ print STDOUT "GGG: ", join '|' => $org, $new, "\n";
 #                    else {
 ##                        fcopy( $org, $new, $buf ) or return if defined $buf;
 ##                        fcopy( $org, $new ) or return if !defined $buf;
-#                        fcopy( $org, $new ) or return;
+                        fcopy( $org, $new ) or return;
 #                    }
 #                    chmod scalar( ( stat($org) )[2] ), $new if $KeepMode;
-#                    $filen++;
+                    $filen++;
 #                }
-#            }
+            }
         } # End 'for' loop around @entities
         $level--;
 #        chmod scalar( ( stat($str) )[2] ), $end if $KeepMode;
