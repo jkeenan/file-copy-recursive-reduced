@@ -450,6 +450,9 @@ L<Daniel Muey|http://www.cpan.org/authors/id/D/DM/DMUEY/> for ingenious
 conception and execution.  The implementation of the subroutines provided by
 FCR2 follows that found in FCR to a significant extent.
 
+Thanks also to Tom Hukins for supplying the patch which corrects FCR's
+problems and which has been incorporated into FCR2 as well.
+
 =head1 AUTHOR
 
     James E Keenan

@@ -1,11 +1,9 @@
-.appveyor.yml
-.travis.yml
-.version_info.pl
 Changes
 lib/File/Copy/Recursive/Reduced.pm
 LICENSE
 Makefile.PL
 MANIFEST			This list of files
+MANIFEST.SKIP
 README
 t/001-fcopy.t
 t/002-dircopy.t
