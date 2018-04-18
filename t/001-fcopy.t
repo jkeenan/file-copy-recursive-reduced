@@ -4,8 +4,8 @@ use strict;
 use warnings;
 
 use Test::More tests => 78;
-
 use File::Copy::Recursive::Reduced qw( fcopy );
+
 use Capture::Tiny qw(capture_stderr);
 use File::Path qw(mkpath);
 use File::Spec;
@@ -18,7 +18,6 @@ use Helper ( qw|
     create_tfile
     get_fresh_tmp_dir
 |);
-#    get_mode
 
 my ($from, $to, $rv);
 

@@ -3,14 +3,13 @@
 use strict;
 use warnings;
 
-use Test::More qw(no_plan); # tests => 16;
+use Test::More tests => 96;
 use File::Copy::Recursive::Reduced qw(dircopy);
 
-use Capture::Tiny qw(capture_stdout capture_stderr);
+use Capture::Tiny qw(capture_stderr);
 use File::Path qw(mkpath);
 use File::Spec;
-use File::Temp qw(tempfile tempdir);
-use Path::Tiny;
+use File::Temp qw(tempdir);
 use lib qw( t/lib );
 use MockHomeDir;
 use Helper ( qw|
@@ -18,8 +17,6 @@ use Helper ( qw|
     create_tfile_and_name_for_new_file_in_same_dir
     create_tsubdir
 | );
-    #get_mode
-    #get_fresh_tmp_dir
 
 my ($from, $to, $rv);
 
@@ -366,6 +363,20 @@ sub basic_tests {
 
 {
     note("Basic tests of File::Copy::Recursive::Reduced::dircopy()");
+    basic_tests(@dirnames);
+}
+
+SKIP: {
+    skip "Set PERL_AUTHOR_TESTING to true to compare with FCR::dircopy()", 20
+        unless $ENV{PERL_AUTHOR_TESTING};
+
+    my $rv = eval { require File::Copy::Recursive; };
+    die unless $rv;
+    no warnings ('redefine');
+    local *dircopy = \&File::Copy::Recursive::dircopy;
+    use warnings;
+
+    note("COMPARISON: Basic tests of File::Copy::Recursive::dircopy()");
     basic_tests(@dirnames);
 }
 
