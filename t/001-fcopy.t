@@ -3,7 +3,8 @@
 use strict;
 use warnings;
 
-use Test::More tests => 49;
+use Test::More tests => 78;
+
 use File::Copy::Recursive::Reduced qw( fcopy );
 use Capture::Tiny qw(capture_stderr);
 use File::Path qw(mkpath);
@@ -224,7 +225,7 @@ sub more_basic_tests {
 }
 
 {
-    note("Basic tests of File::Copy::Recursive::Reduced::fcopy()");
+    note("Basic tests of fcopy()");
     basic_tests();
 
     my $tdir = tempdir(CLEANUP => 1);
@@ -233,19 +234,25 @@ sub more_basic_tests {
     more_basic_tests($tdir, $adir, $bdir);
 }
 
-#{
-#    note("Basic tests of File::Copy::Recursive::fcopy()");
-#    require File::Copy::Recursive;
-#    no warnings ('redefine');
-#    local *fcopy = \&File::Copy::Recursive::fcopy;
-#    use warnings;
-#    basic_tests();
-#
-#    my $tdir = tempdir(CLEANUP => 1);
-#    my $adir = "$tdir/albemarle";
-#    my $bdir = "$tdir/beverly";
-#    more_basic_tests($tdir, $adir, $bdir);
-#}
+SKIP: {
+    skip "Set PERL_AUTHOR_TESTING to true to compare with FCR::fcopy()", 29
+        unless $ENV{PERL_AUTHOR_TESTING};
+
+    my $rv = eval { require File::Copy::Recursive; };
+    die unless $rv;
+    no warnings ('redefine');
+    local *fcopy = \&File::Copy::Recursive::fcopy;
+    use warnings;
+
+    note("COMPARISON: Basic tests of File::Copy::Recursive::fcopy()");
+
+    basic_tests();
+
+    my $tdir = tempdir(CLEANUP => 1);
+    my $adir = "$tdir/albemarle";
+    my $bdir = "$tdir/beverly";
+    more_basic_tests($tdir, $adir, $bdir);
+}
 
 {
     note("Tests from FCR t/01.legacy.t");
