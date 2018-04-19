@@ -412,19 +412,6 @@ sub _dev_ino_check {
     return 1;
 }
 
-sub _samecheck {
-    # Adapted from File::Copy::Recursive
-    my ($from, $to) = @_;
-    return unless _basic_samecheck($from, $to);
-
-    # TODO:  Explore whether we should check (-e $from) here.
-    # If we don't have a starting point, it shouldn't make any sense to go
-    # farther.
-
-    return unless _dev_ino_check($from, $to);
-    return 1;
-}
-
 sub rcopy {
     return unless @_ == 2;
     my ($from, $to) = @_;
