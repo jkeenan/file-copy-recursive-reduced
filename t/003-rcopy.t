@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 174;
+use Test::More tests => 176;
 use File::Copy::Recursive::Reduced qw( rcopy );
 
 use Capture::Tiny qw(capture_stderr);
@@ -65,7 +65,7 @@ SKIP: {
 }
 
 SKIP: {
-    skip "System does not support symlinks", 9
+    skip "System does not support symlinks", 11
         unless $File::Copy::Recursive::Reduced::CopyLink;
 
     # System supports symlinks
@@ -76,6 +76,7 @@ SKIP: {
     $rv = symlink($old, $symlink)
         or die "Unable to symlink $symlink to target $old for testing: $!";
     ok(-l $symlink, "rcopy(): $symlink is indeed a symlink");
+    is(readlink($symlink), $old, "Symlink $symlink points to $old");
     $new = File::Spec->catfile($tdir, 'new');
     $rv = rcopy($symlink, $new);
     ok(defined $rv, "fcopy() returned defined value when copying from symlink");
@@ -89,6 +90,7 @@ SKIP: {
     $rv = symlink($xold, $xsymlink)
         or die "Unable to symlink $xsymlink to target $xold for testing: $!";
     ok(-l $xsymlink, "rcopy(): $xsymlink is indeed a symlink");
+    is(readlink($symlink), $old, "Symlink $symlink points to $old");
     $xnew = File::Spec->catfile($tdir, 'xnew');
     unlink $xold or die "Unable to unlink $xold during testing: $!";
     $stderr = capture_stderr { $rv = rcopy($xsymlink, $xnew); };

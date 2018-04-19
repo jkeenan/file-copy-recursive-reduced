@@ -187,7 +187,17 @@ sub _fcopy {
     if ( $path && !-d $path ) {
         pathmk(File::Spec->catpath($volm, $path, ''));
     }
-    if (-l $from) { return; }
+
+    if ( -l $from && $CopyLink ) {
+        my $target = readlink( $from );
+        # FCR: mass-untaint is OK since we have to allow what the file system does
+        ($target) = $target =~ m/(.*)/;
+        warn "Copying a symlink ($from) whose target does not exist"
+          if !-e $target;
+        my $new = $to;
+        unlink $new if -l $new;
+        symlink( $target, $new ) or return;
+    }
     elsif (-d $from && -f $to) { return; }
     else {
         copy($from, $to) or return;
@@ -477,8 +487,8 @@ sub rcopy {
     return unless _dev_ino_check($from, $to);
 
     # symlinks not yet supported
-    #if ( -l $_[0] && $CopyLink ) { goto &fcopy; }
-    return if -l $_[0];
+    #return if -l $_[0];
+    goto &fcopy if -l $_[0] && $CopyLink;
 
     goto &_dircopy if -d $_[0] || substr( $_[0], ( 1 * -1 ), 1 ) eq '*';
     goto &_fcopy;
