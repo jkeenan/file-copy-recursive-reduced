@@ -21,6 +21,7 @@ use Helper ( qw|
     touch_a_file_and_test
     touch_directories_and_test
     touch_left_path_and_test
+    prepare_left_side_directories
 |);
 
 my ($from, $to, $rv);
@@ -496,14 +497,7 @@ sub basic_rcopy_dir_tests {
         my @subdirs = @dirnames[0..4];
 
         # Prepare left side
-        $tdir = File::Spec->catdir($topdir, 'alpha');
-        mkpath($tdir) or die "Unable to mkpath $tdir";
-        ok(-d $tdir, "Directory $tdir created");
-        $old        = File::Spec->catdir($tdir);
-        $oldtree    = File::Spec->catdir($tdir, @subdirs);
-        @created = mkpath($oldtree, { mode => 0711 });
-        die "Unable to create directory $oldtree for testing: $!" unless -d $oldtree;
-        ok(-d $oldtree, "Directory $oldtree created for testing");
+        ($old, $oldtree) = prepare_left_side_directories($topdir, 'alpha', \@subdirs);
 
         # Prepare right side
         $tdir2  = File::Spec->catdir($topdir, 'beta');
@@ -527,14 +521,7 @@ sub basic_rcopy_dir_tests {
         my @subdirs = @dirnames[5..7];
 
         # Prepare left side
-        $tdir = File::Spec->catdir($topdir, 'alpha');
-        mkpath($tdir) or die "Unable to mkpath $tdir";
-        ok(-d $tdir, "Directory $tdir created");
-        $old        = File::Spec->catdir($tdir);
-        $oldtree    = File::Spec->catdir($tdir, @subdirs);
-        @created = mkpath($oldtree, { mode => 0711 });
-        die "Unable to create directory $oldtree for testing: $!" unless -d $oldtree;
-        ok(-d $oldtree, "Directory $oldtree created for testing");
+        ($old, $oldtree) = prepare_left_side_directories($topdir, 'alpha', \@subdirs);
         @basenames = qw| foo bar |;
         for my $b (@basenames) {
             my $f = touch_a_file_and_test(File::Spec->catfile($oldtree, $b));
@@ -565,14 +552,7 @@ sub basic_rcopy_dir_tests {
         my @subdirs = @dirnames[8..11];
 
         # Prepare left side
-        $tdir = File::Spec->catdir($topdir, 'alpha');
-        mkpath($tdir) or die "Unable to mkpath $tdir";
-        ok(-d $tdir, "Directory $tdir created");
-        $old        = File::Spec->catdir($tdir);
-        $oldtree    = File::Spec->catdir($tdir, @subdirs);
-        @created = mkpath($oldtree, { mode => 0711 });
-        die "Unable to create directory $oldtree for testing: $!" unless -d $oldtree;
-        ok(-d $oldtree, "Directory $oldtree created for testing");
+        ($old, $oldtree) = prepare_left_side_directories($topdir, 'alpha', \@subdirs);
         my $f = File::Spec->catfile(@subdirs[0..1], 'foo');
         my $g = File::Spec->catfile(@subdirs[0..2], 'bar');
         for my $h ($f, $g) {

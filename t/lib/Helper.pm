@@ -14,6 +14,7 @@ use Exporter ();
     touch_a_file_and_test
     touch_directories_and_test
     touch_left_path_and_test
+    prepare_left_side_directories
 | );
 use File::Spec;
 use File::Temp ( qw| tempdir | );
@@ -118,6 +119,19 @@ sub touch_left_path_and_test {
     mkpath($ldir) or die "Unable to mkpath $ldir: $!";
     Test::More::ok(-d $ldir, "Directory $ldir created");
     return $ldir;
+}
+
+sub prepare_left_side_directories {
+    my ($topdir, $dirname, $subdirs) = @_;
+    my $tdir = File::Spec->catdir($topdir, $dirname);
+    mkpath($tdir) or die "Unable to mkpath $tdir";
+    Test::More::ok(-d $tdir, "Directory $tdir created");
+    my $old        = File::Spec->catdir($tdir);
+    my $oldtree    = File::Spec->catdir($tdir, @{$subdirs});
+    my @created = mkpath($oldtree, { mode => 0711 });
+    die "Unable to create directory $oldtree for testing: $!" unless -d $oldtree;
+    Test::More::ok(-d $oldtree, "Directory $oldtree created for testing");
+    return ($old, $oldtree);
 }
 
 1;
