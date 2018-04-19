@@ -11,6 +11,8 @@ use Exporter ();
     get_mode
     create_tsubdir
     get_fresh_tmp_dir
+    touch_a_file_and_test
+    touch_directories_and_test
 | );
 use File::Spec;
 use File::Temp ( qw| tempdir | );
@@ -88,4 +90,24 @@ sub _get_dirs {
     return @catdirs;
 }
 
+sub touch_a_file_and_test {
+    my $f = shift;
+    open my $OUT, '>', $f or die "Unable to open $f for writing";
+    print $OUT "\n";
+    close $OUT or die "Unable to close $f after writing";
+    Test::More::ok(-f $f, "Created $f for testing");
+    return 1;
+}
+
+sub touch_directories_and_test {
+    my ($topdir, $tdir_names) = @_;
+    my @tdirs = ();
+    for my $d (@{$tdir_names}) {
+        my $s = File::Spec->catdir($topdir, $d);
+        mkpath($s) or die "Unable to mkpath $s: $!";
+        Test::More::ok(-d $s, "Directory $s created");
+        push @tdirs, $s;
+    }
+    return @tdirs;
+}
 1;
