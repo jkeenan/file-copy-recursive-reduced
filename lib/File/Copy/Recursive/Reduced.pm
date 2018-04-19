@@ -254,6 +254,10 @@ Should the function not complete (but not C<die>), an undefined value will be
 returned.  That generally indicates problems with argument validation.  This
 approach is taken for consistency with C<File::Copy::Recursive::dircopy()>.
 
+In list context the return value is a one-item list holding the same value as
+returned in scalar context.  The three-item list return value of
+C<File::Copy::Recursive::dircopy()> is not supported.
+
 =item * Restrictions
 
 None of C<File::Copy::Recursive::dircopy>'s bells and whistles.  No provision
@@ -411,6 +415,55 @@ sub _dev_ino_check {
     }
     return 1;
 }
+
+=head2 C<rcopy()>
+
+=over 4
+
+=item * Purpose
+
+A stripped-down replacement for C<File::Copy::Recursive::rcopy()>.  As is the
+case with that FCR function, C<rcopy()> is more or less a wrapper around
+C<fcopy()> or C<dircopy()>, depending on the nature of the first argument.
+
+=item * Arguments
+
+    rcopy($orig, $new) or die $!;
+
+List of two required arguments:
+
+=over 4
+
+=item * Absolute path to the entity (file or directory) being copied; and
+
+=item * Absolute path to the location to which the entity is being copied.
+
+=back
+
+=item * Return Value
+
+Returns C<1> upon success; C<0> upon failure.  Returns an undefined value if,
+for example, function cannot validate arguments.
+
+=item * Comment
+
+Please read the documentation for C<fcopy()> or C<dircopy()>, depending on the
+nature of the first argument.
+
+=item * Restrictions
+
+=over 4
+
+=item *
+
+Does not currently handle copying of symlinks, though it may do so in a future
+version.
+
+=back
+
+=back
+
+=cut
 
 sub rcopy {
     return unless @_ == 2;
