@@ -18,6 +18,8 @@ use Helper ( qw|
     create_tfile
     get_fresh_tmp_dir
     create_tsubdir
+    touch_a_file_and_test
+    touch_directories_and_test
 |);
 
 my ($from, $to, $rv);
@@ -369,13 +371,7 @@ note("Begin tests with valid arguments");
     note("Copying of subdirs containing no files");
     my $topdir = tempdir(CLEANUP => 1);
     my @tdir_names = ('xray', 'yeller');
-    my @tdirs = ();
-    for my $d (@tdir_names) {
-        my $s = File::Spec->catdir($topdir, $d);
-        mkpath($s) or die "Unable to mkpath $s: $!";
-        ok(-d $s, "Directory $s created");
-        push @tdirs, $s;
-    }
+    my @tdirs = touch_directories_and_test($topdir, \@tdir_names);
     my @subdir_names = ('alpha', 'beta', 'gamma');
     my $ldir = File::Spec->catdir($tdirs[0], @subdir_names);
     mkpath($ldir) or die "Unable to mkpath $ldir: $!";
@@ -404,13 +400,7 @@ note("Begin tests with valid arguments");
     note("Copying of subdirs containing 1 file at bottom level");
     my $topdir = tempdir(CLEANUP => 1);
     my @tdir_names = ('xray', 'yeller');
-    my @tdirs = ();
-    for my $d (@tdir_names) {
-        my $s = File::Spec->catdir($topdir, $d);
-        mkpath($s) or die "Unable to mkpath $s: $!";
-        ok(-d $s, "Directory $s created");
-        push @tdirs, $s;
-    }
+    my @tdirs = touch_directories_and_test($topdir, \@tdir_names);
     my @subdir_names = ('alpha', 'beta', 'gamma');
     my $ldir = File::Spec->catdir($tdirs[0], @subdir_names);
     mkpath($ldir) or die "Unable to mkpath $ldir: $!";
@@ -445,13 +435,7 @@ note("Begin tests with valid arguments");
     note("Copying of subdirs containing 1 file at non-bottom level");
     my $topdir = tempdir(CLEANUP => 1);
     my @tdir_names = ('xray', 'yeller');
-    my @tdirs = ();
-    for my $d (@tdir_names) {
-        my $s = File::Spec->catdir($topdir, $d);
-        mkpath($s) or die "Unable to mkpath $s: $!";
-        ok(-d $s, "Directory $s created");
-        push @tdirs, $s;
-    }
+    my @tdirs = touch_directories_and_test($topdir, \@tdir_names);
     my @subdir_names = ('alpha', 'beta', 'gamma');
     my $ldir = File::Spec->catdir($tdirs[0], @subdir_names);
     mkpath($ldir) or die "Unable to mkpath $ldir: $!";
@@ -640,14 +624,6 @@ SKIP: {
 
     note("COMPARISON: Basic tests of File::Copy::Recursive::rcopy()");
     basic_rcopy_dir_tests(@dirnames);
-}
-
-sub touch_a_file_and_test {
-    my $f = shift;
-    open my $OUT, '>', $f or die "Unable to open $f for writing";
-    print $OUT "\n";
-    close $OUT or die "Unable to close $f after writing";
-    ok(-f $f, "Created $f for testing");
 }
 
 __END__
