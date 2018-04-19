@@ -633,7 +633,13 @@ sub rcopy_mixed_block {
 {
     note("Basic tests of File::Copy::Recursive::Reduced::rcopy()");
     basic_rcopy_dir_tests(@dirnames);
-    rcopy_mixed_block();
+    SKIP: {
+        skip "System does not support symlinks",  6
+            unless $File::Copy::Recursive::Reduced::CopyLink;
+
+        note("Copy directory which holds symlinks");
+        rcopy_mixed_block();
+    }
 }
 
 SKIP: {
@@ -648,7 +654,13 @@ SKIP: {
 
     note("COMPARISON: Basic tests of File::Copy::Recursive::rcopy()");
     basic_rcopy_dir_tests(@dirnames);
-    rcopy_mixed_block();
+    SKIP: {
+        skip "System does not support symlinks",  6
+            unless $File::Copy::Recursive::Reduced::CopyLink;
+
+        note("Copy directory which holds symlinks");
+        rcopy_mixed_block();
+    }
 }
 
 __END__
