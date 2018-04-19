@@ -65,7 +65,7 @@ SKIP: {
 }
 
 SKIP: {
-    skip "System does not support symlinks", 4
+    skip "System does not support symlinks", 9
         unless $File::Copy::Recursive::Reduced::CopyLink;
 
     # System supports symlinks
