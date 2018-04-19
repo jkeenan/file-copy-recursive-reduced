@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 78;
+use Test::More tests => 83;
 use File::Copy::Recursive::Reduced qw( fcopy );
 
 use Capture::Tiny qw(capture_stderr);
@@ -63,7 +63,7 @@ SKIP: {
     skip "System does not support symlinks", 4
         unless $File::Copy::Recursive::Reduced::CopyLink;
 
-    # System supports symlinks (though the module does not yet do so).
+    # System supports symlinks
     my ($tdir, $old, $new, $symlink, $rv);
     $tdir = tempdir( CLEANUP => 1 );
     $old = create_tfile($tdir);
@@ -73,10 +73,10 @@ SKIP: {
     ok(-l $symlink, "fcopy(): $symlink is indeed a symlink");
     $new = File::Spec->catfile($tdir, 'new');
     $rv = fcopy($symlink, $new);
-    ok(! defined $rv, "fcopy() does not yet handle copying from symlink");
-    #ok($rv, "fcopy() returned true value when copying from symlink");
-    #ok(-f $new, "fcopy(): $new is a file");
-    #ok(-l $new, "fcopy(): but $new is also another symlink");
+    ok(defined $rv, "fcopy() returned defined value when copying from symlink");
+    ok($rv, "fcopy() returned true value when copying from symlink");
+    ok(-f $new, "fcopy(): $new is a file");
+    ok(-l $new, "fcopy(): but $new is also another symlink");
 
     my ($xold, $xnew, $xsymlink, $stderr);
     $xold = create_tfile($tdir);
@@ -87,10 +87,10 @@ SKIP: {
     $xnew = File::Spec->catfile($tdir, 'xnew');
     unlink $xold or die "Unable to unlink $xold during testing: $!";
     $stderr = capture_stderr { $rv = fcopy($xsymlink, $xnew); };
-    ok(! defined $rv, "fcopy() does not yet handle copying from symlink");
-    #ok($rv, "fcopy() returned true value when copying from symlink");
-    #like($stderr, qr/Copying a symlink \($xsymlink\) whose target does not exist/,
-    #    "fcopy(): Got expected warning when copying from symlink whose target does not exist");
+    ok(defined $rv, "fcopy() returned defined value when copying from symlink");
+    ok($rv, "fcopy() returned true value when copying from symlink");
+    like($stderr, qr/Copying a symlink \($xsymlink\) whose target does not exist/,
+        "fcopy(): Got expected warning when copying from symlink whose target does not exist");
 }
 
 {
