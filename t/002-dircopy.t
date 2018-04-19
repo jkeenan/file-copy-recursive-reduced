@@ -245,7 +245,7 @@ my @dirnames = ( qw|
     ultra victor windy xray yellow zebra
 | );
 
-sub basic_tests {
+sub basic_dircopy_tests {
     my @dirnames = @_;
     {
         note("Multiple directories; no files");
@@ -359,11 +359,11 @@ sub basic_tests {
             ok(-f $b, "dircopy(): file $b created");
         }
     }
-} # END definition of basic_tests()
+} # END definition of basic_dircopy_tests()
 
 {
     note("Basic tests of File::Copy::Recursive::Reduced::dircopy()");
-    basic_tests(@dirnames);
+    basic_dircopy_tests(@dirnames);
 }
 
 SKIP: {
@@ -377,7 +377,7 @@ SKIP: {
     use warnings;
 
     note("COMPARISON: Basic tests of File::Copy::Recursive::dircopy()");
-    basic_tests(@dirnames);
+    basic_dircopy_tests(@dirnames);
 }
 
 sub touch_a_file_and_test {
