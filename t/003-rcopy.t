@@ -20,6 +20,7 @@ use Helper ( qw|
     create_tsubdir
     touch_a_file_and_test
     touch_directories_and_test
+    touch_left_path_and_test
 |);
 
 my ($from, $to, $rv);
@@ -373,9 +374,7 @@ note("Begin tests with valid arguments");
     my @tdir_names = ('xray', 'yeller');
     my @tdirs = touch_directories_and_test($topdir, \@tdir_names);
     my @subdir_names = ('alpha', 'beta', 'gamma');
-    my $ldir = File::Spec->catdir($tdirs[0], @subdir_names);
-    mkpath($ldir) or die "Unable to mkpath $ldir: $!";
-    ok(-d $ldir, "Directory $ldir created");
+    my $ldir = touch_left_path_and_test($tdirs[0], @subdir_names);
     my @expected_subdirs = ();
     my $intermed = $tdirs[1];
     for my $d (@subdir_names) {
@@ -402,9 +401,7 @@ note("Begin tests with valid arguments");
     my @tdir_names = ('xray', 'yeller');
     my @tdirs = touch_directories_and_test($topdir, \@tdir_names);
     my @subdir_names = ('alpha', 'beta', 'gamma');
-    my $ldir = File::Spec->catdir($tdirs[0], @subdir_names);
-    mkpath($ldir) or die "Unable to mkpath $ldir: $!";
-    ok(-d $ldir, "Directory $ldir created");
+    my $ldir = touch_left_path_and_test($tdirs[0], @subdir_names);
     my $fname = 'foo';
     my $f1 = create_tfile($ldir, $fname);
     ok(-f $f1, "File      $f1 created at bottom level");
@@ -437,9 +434,7 @@ note("Begin tests with valid arguments");
     my @tdir_names = ('xray', 'yeller');
     my @tdirs = touch_directories_and_test($topdir, \@tdir_names);
     my @subdir_names = ('alpha', 'beta', 'gamma');
-    my $ldir = File::Spec->catdir($tdirs[0], @subdir_names);
-    mkpath($ldir) or die "Unable to mkpath $ldir: $!";
-    ok(-d $ldir, "Directory $ldir created");
+    my $ldir = touch_left_path_and_test($tdirs[0], @subdir_names);
     my $fname = 'foo';
     my $f1 = create_tfile(File::Spec->catdir($tdirs[0], @subdir_names[0..1]), $fname);
     ok(-f $f1, "File      $f1 created at non-bottom level");
@@ -504,7 +499,6 @@ sub basic_rcopy_dir_tests {
         $tdir = File::Spec->catdir($topdir, 'alpha');
         mkpath($tdir) or die "Unable to mkpath $tdir";
         ok(-d $tdir, "Directory $tdir created");
-        $tdir   = tempdir( CLEANUP => 1 );
         $old        = File::Spec->catdir($tdir);
         $oldtree    = File::Spec->catdir($tdir, @subdirs);
         @created = mkpath($oldtree, { mode => 0711 });

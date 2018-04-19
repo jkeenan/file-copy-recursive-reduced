@@ -13,6 +13,7 @@ use Exporter ();
     get_fresh_tmp_dir
     touch_a_file_and_test
     touch_directories_and_test
+    touch_left_path_and_test
 | );
 use File::Spec;
 use File::Temp ( qw| tempdir | );
@@ -110,4 +111,13 @@ sub touch_directories_and_test {
     }
     return @tdirs;
 }
+
+sub touch_left_path_and_test {
+    my @dirs = @_;
+    my $ldir = File::Spec->catdir(@dirs);
+    mkpath($ldir) or die "Unable to mkpath $ldir: $!";
+    Test::More::ok(-d $ldir, "Directory $ldir created");
+    return $ldir;
+}
+
 1;
