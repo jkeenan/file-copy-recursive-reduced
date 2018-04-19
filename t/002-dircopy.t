@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 102;
+use Test::More tests => 108;
 use File::Copy::Recursive::Reduced qw(dircopy);
 
 use Capture::Tiny qw(capture_stderr);
@@ -319,30 +319,7 @@ sub basic_dircopy_tests {
     }
 } # END definition of basic_dircopy_tests()
 
-{
-    note("Basic tests of File::Copy::Recursive::Reduced::dircopy()");
-    basic_dircopy_tests(@dirnames);
-}
-
-SKIP: {
-    skip "Set PERL_AUTHOR_TESTING to true to compare with FCR::dircopy()", 20
-        unless $ENV{PERL_AUTHOR_TESTING};
-
-    my $rv = eval { require File::Copy::Recursive; };
-    die unless $rv;
-    no warnings ('redefine');
-    local *dircopy = \&File::Copy::Recursive::dircopy;
-    use warnings;
-
-    note("COMPARISON: Basic tests of File::Copy::Recursive::dircopy()");
-    basic_dircopy_tests(@dirnames);
-}
-
-SKIP: {
-    skip "System does not support symlinks",  6 
-        unless $File::Copy::Recursive::Reduced::CopyLink;
-
-    note("Copy directory which holds symlinks");
+sub mixed_block {
     my $tdir = tempdir(CLEANUP => 1);
     my $old = File::Spec->catdir($tdir, 'old');
     mkpath $old or die "Unable to mkpath $old";
@@ -388,5 +365,38 @@ SKIP: {
     };
     is_deeply($created_counts, $counts,
         "Got expected number of directories, files and symlinks by copying");
+} # END definition of mixed_block()
+
+{
+    note("Basic tests of File::Copy::Recursive::Reduced::dircopy()");
+    basic_dircopy_tests(@dirnames);
+    SKIP: {
+        skip "System does not support symlinks",  6
+            unless $File::Copy::Recursive::Reduced::CopyLink;
+
+        note("Copy directory which holds symlinks");
+        mixed_block();
+    }
+}
+
+SKIP: {
+    skip "Set PERL_AUTHOR_TESTING to true to compare with FCR::dircopy()", 26
+        unless $ENV{PERL_AUTHOR_TESTING};
+
+    my $rv = eval { require File::Copy::Recursive; };
+    die unless $rv;
+    no warnings ('redefine');
+    local *dircopy = \&File::Copy::Recursive::dircopy;
+    use warnings;
+
+    note("COMPARISON: Basic tests of File::Copy::Recursive::dircopy()");
+    basic_dircopy_tests(@dirnames);
+    SKIP: {
+        skip "System does not support symlinks",  6
+            unless $File::Copy::Recursive::Reduced::CopyLink;
+
+        note("Copy directory which holds symlinks");
+        mixed_block();
+    }
 }
 
