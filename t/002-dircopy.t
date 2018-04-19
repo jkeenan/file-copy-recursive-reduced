@@ -338,7 +338,10 @@ SKIP: {
     basic_dircopy_tests(@dirnames);
 }
 
-{
+SKIP: {
+    skip "System does not support symlinks",  6 
+        unless $File::Copy::Recursive::Reduced::CopyLink;
+
     note("Copy directory which holds symlinks");
     my $tdir = tempdir(CLEANUP => 1);
     my $old = File::Spec->catdir($tdir, 'old');
