@@ -231,7 +231,6 @@ sub basic_dircopy_tests {
         note("Multiple directories; no files");
         my $topdir = tempdir(CLEANUP => 1);
         my ($tdir, $tdir2, $old, $oldtree, $new, $rv, $expected);
-        my (@created);
         my @subdirs = @dirnames[0..4];
 
         # Prepare left side
@@ -255,7 +254,7 @@ sub basic_dircopy_tests {
         note("Multiple directories; files at bottom level");
         my $topdir = tempdir(CLEANUP => 1);
         my ($tdir, $tdir2, $old, $oldtree, $new, $rv, $expected);
-        my (@created, @basenames);
+        my (@basenames);
         my @subdirs = @dirnames[5..7];
 
         # Prepare left side
@@ -286,7 +285,6 @@ sub basic_dircopy_tests {
         note("Multiple directories; files at intermediate levels");
         my $topdir = tempdir(CLEANUP => 1);
         my ($tdir, $tdir2, $old, $oldtree, $new, $rv, $expected);
-        my (@created);
         my @subdirs = @dirnames[8..11];
 
         # Prepare left side
