@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 174;
+use Test::More tests => 169;
 use File::Copy::Recursive::Reduced qw( rcopy );
 
 use Capture::Tiny qw(capture_stderr);
@@ -340,30 +340,6 @@ SKIP: {
             like($stderr, qr/\Q$old and $new are identical\E/,
                 "rcopy(): got expected warning when provided arguments with identical dev and ino");
         }
-    }
-
-    {
-        note("Either first argument is not a directory or\nsecond argument exists already and is not a directory");
-        my ($tdir, $old, $new, $rv);
-        $tdir = tempdir( CLEANUP => 1 );
-        $old = create_tfile($tdir);
-        $new = 'foo';
-        $rv = rcopy($old, $new);
-        TODO: {
-            local $TODO = 'rcopy() should not slavishly follow _dircopy() here';
-            ok(! defined $rv, "rcopy() returned undef when first argument was not a directory");
-        }
-        cmp_ok($!, '>=', 0, "\$ERRNO set: " . $!);
-        undef $!;
-        ok(! $!, "\$ERRORNO has been cleared");
-
-        $old = create_tsubdir($tdir);
-        $new = create_tfile($tdir, 'new');
-        $rv = rcopy($old, $new);
-        ok(! defined $rv,
-            "rcopy() returned undef when second argument -- not a directory -- already existed");
-        cmp_ok($!, '>=', 0, "\$ERRNO set: " . $!);
-        undef $!;
     }
 }
 
