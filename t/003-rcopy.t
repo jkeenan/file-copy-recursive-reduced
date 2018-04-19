@@ -3,10 +3,11 @@
 use strict;
 use warnings;
 
-use Test::More tests => 176;
+use Test::More tests => 188;
 use File::Copy::Recursive::Reduced qw( rcopy );
 
 use Capture::Tiny qw(capture_stderr);
+use File::Find;
 use File::Path qw(mkpath);
 use File::Spec;
 use File::Temp qw(tempdir);
@@ -22,6 +23,7 @@ use Helper ( qw|
     touch_directories_and_test
     touch_left_path_and_test
     prepare_left_side_directories
+    make_mixed_directory
 |);
 
 my ($from, $to, $rv);
@@ -266,7 +268,6 @@ SKIP: {
     my $tmpd = get_fresh_tmp_dir();
     ok(-d $tmpd, "$tmpd exists");
 
-    # that rcopy copies files and symlinks is covered by the dircopy tests, specifically _is_deeply_path()
     $rv = rcopy( "$tmpd/orig/data", "$tmpd/rcopy" );
     is(
         path("$tmpd/orig/data")->slurp,
@@ -581,13 +582,62 @@ sub basic_rcopy_dir_tests {
     }
 } # END definition of basic_rcopy_dir_tests()
 
+sub rcopy_mixed_block {
+    my $tdir = tempdir(CLEANUP => 1);
+    my $old = File::Spec->catdir($tdir, 'old');
+    mkpath $old or die "Unable to mkpath $old";
+    ok(-d $old, "Created $old for testing");
+    my $rv = make_mixed_directory($old);
+    ok($rv, "make_mixed_directory() returned true value");
+    is(ref($rv), 'HASH', "make_mixed_directory() returned hashref");
+    my $counts = {
+        dirs => scalar @{$rv->{dirs}},
+        files => scalar @{$rv->{files}},
+        symlinks => scalar @{$rv->{symlinks}},
+    };
+    my $exp = {
+        dirs => 9,
+        files => 6,
+        symlinks => 3,
+    };
+    is_deeply($counts, $exp,
+        "Got expected number of directories, files and symlinks for testing");
+
+    my $new = File::Spec->catdir($tdir, 'new');
+    $rv = rcopy($old, $new) or die "Unable to rcopy";
+    ok(defined $rv, "rcopy() returned defined value");
+    my %seen = ();
+    my $wanted = sub {
+        unless ($File::Find::name eq $new) {
+            $seen{dirs}{$File::Find::name}++ if -d $File::Find::name;
+            if (-l $File::Find::name) {
+                $seen{symlinks}{$File::Find::name}++;
+            }
+            elsif (-f $File::Find::name) {
+                $seen{files}{$File::Find::name}++;
+            }
+        }
+    };
+    find($wanted, $new);
+    #require Data::Dump;
+    #Data::Dump::pp(\%seen);
+    my $created_counts = {
+        dirs => scalar keys %{$seen{dirs}},
+        files => scalar keys %{$seen{files}},
+        symlinks => scalar keys %{$seen{symlinks}},
+    };
+    is_deeply($created_counts, $counts,
+        "Got expected number of directories, files and symlinks by copying");
+} # END definition of rcopy_mixed_block()
+
 {
     note("Basic tests of File::Copy::Recursive::Reduced::rcopy()");
     basic_rcopy_dir_tests(@dirnames);
+    rcopy_mixed_block();
 }
 
 SKIP: {
-    skip "Set PERL_AUTHOR_TESTING to true to compare with FCR::rcopy()", 20
+    skip "Set PERL_AUTHOR_TESTING to true to compare with FCR::rcopy()", 26
         unless $ENV{PERL_AUTHOR_TESTING};
 
     my $rv = eval { require File::Copy::Recursive; };
@@ -598,6 +648,7 @@ SKIP: {
 
     note("COMPARISON: Basic tests of File::Copy::Recursive::rcopy()");
     basic_rcopy_dir_tests(@dirnames);
+    rcopy_mixed_block();
 }
 
 __END__
