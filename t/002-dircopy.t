@@ -3,10 +3,12 @@
 use strict;
 use warnings;
 
-use Test::More tests => 96;
+use Test::More qw(no_plan); # tests => 96;
 use File::Copy::Recursive::Reduced qw(dircopy);
 
 use Capture::Tiny qw(capture_stderr);
+use File::Basename;
+use File::Find;
 use File::Path qw(mkpath);
 use File::Spec;
 use File::Temp qw(tempdir);
@@ -334,5 +336,114 @@ SKIP: {
 
     note("COMPARISON: Basic tests of File::Copy::Recursive::dircopy()");
     basic_dircopy_tests(@dirnames);
+}
+
+sub make_mixed_directory {
+    my $topdir = shift;
+    my @dirnames = qw( alpha beta gamma );
+    my @subdirs = ();
+    for my $d (@dirnames) {
+        my $p = File::Spec->catdir($topdir, $d);
+        mkpath $p or die "Unable to mkpath $p";
+        push @subdirs, $p;
+    }
+    my @next_dirnames = qw( albemarle beverly );
+    my @nextdirs = ();
+    my @files_created = ();
+    for my $d (@subdirs) {
+        for my $e (@next_dirnames) {
+            my $p = File::Spec->catdir($d, $e);
+            mkpath $p or die "Unable to mkpath $p";
+            push @nextdirs, $p;
+            my @fnames = qw( f1 f2 );
+            if ($e eq $next_dirnames[0]) {
+                my $f1 = File::Spec->catfile($p, $fnames[0]);
+                my $f2 = File::Spec->catfile($p, $fnames[1]);
+                for my $f ($f1, $f2) {
+                    open my $OUT, '>', $f or die "Unable to open for writing";
+                    print $OUT "\n";
+                    close $OUT or die "Unable to close after writing";
+                    push @files_created, $f;
+                }
+            }
+        }
+    }
+    my @symlinks_created = ();
+    for my $f (@files_created) {
+        my $base = basename($f);
+        my $dirs = dirname($f);
+        if ($base eq 'f1') {
+            #print "Need to target $f\n";
+            #print "base: $base\n";
+            my @dirs = File::Spec->splitdir($dirs);
+            #print "dirs: @dirs\n";
+
+            #my $orig = File::Spec->catfile($topdir, $f);
+            my $orig = File::Spec->catfile($f);
+            #my $newdir = File::Spec->catdir($topdir, @dirs[0 .. ($#dirs -1)], 'beverly');
+            my $newdir = File::Spec->catdir(@dirs[0 .. ($#dirs -1)], 'beverly');
+            my $symlink = File::Spec->catfile($newdir, 'l1');
+            #print "XXX: $orig => $symlink\n";
+            symlink $orig, $symlink or die "Unable to symlink";
+            push @symlinks_created, $symlink;
+        }
+
+    }
+    my @dirs_created = (@subdirs, @nextdirs);
+    my $rv = {
+        dirs => \@dirs_created,
+        files => \@files_created,
+        symlinks => \@symlinks_created,
+    };
+    return $rv;
+}
+
+{
+    note("Copy directory which holds symlinks");
+    my $tdir = tempdir(CLEANUP => 1);
+    my $old = File::Spec->catdir($tdir, 'old');
+    mkpath $old or die "Unable to mkpath $old";
+    ok(-d $old, "Created $old for testing");
+    my $rv = make_mixed_directory($old);
+    ok($rv, "make_mixed_directory() returned true value");
+    is(ref($rv), 'HASH', "make_mixed_directory() returned hashref");
+    my $counts = {
+        dirs => scalar @{$rv->{dirs}},
+        files => scalar @{$rv->{files}},
+        symlinks => scalar @{$rv->{symlinks}},
+    };
+    my $exp = {
+        dirs => 9,
+        files => 6,
+        symlinks => 3,
+    };
+    is_deeply($counts, $exp,
+        "Got expected number of directories, files and symlinks for testing");
+
+    my $new = File::Spec->catdir($tdir, 'new');
+    $rv = dircopy($old, $new) or die "Unable to dircopy";
+    ok(defined $rv, "dircopy() returned defined value");
+    my %seen = ();
+    my $wanted = sub {
+        unless ($File::Find::name eq $new) {
+            $seen{dirs}{$File::Find::name}++ if -d $File::Find::name;
+            if (-l $File::Find::name) {
+                $seen{symlinks}{$File::Find::name}++;
+            }
+            elsif (-f $File::Find::name) {
+                $seen{files}{$File::Find::name}++;
+            }
+        }
+    };
+    find($wanted, $new);
+    #require Data::Dump;
+    #Data::Dump::pp(\%seen);
+    my $created_counts = {
+        dirs => scalar keys %{$seen{dirs}},
+        files => scalar keys %{$seen{files}},
+        symlinks => scalar keys %{$seen{symlinks}},
+    };
+    is_deeply($created_counts, $counts,
+        "Got expected number of directories, files and symlinks by copying");
 }
 

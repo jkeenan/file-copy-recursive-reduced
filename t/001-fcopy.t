@@ -261,7 +261,6 @@ SKIP: {
     my $tmpd = get_fresh_tmp_dir();
     ok(-d $tmpd, "$tmpd exists");
 
-    # that fcopy copies files and symlinks is covered by the dircopy tests, specifically _is_deeply_path()
     $rv = fcopy( "$tmpd/orig/data", "$tmpd/fcopy" );
     is(
         path("$tmpd/orig/data")->slurp,

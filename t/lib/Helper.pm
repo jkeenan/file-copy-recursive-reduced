@@ -56,7 +56,7 @@ sub create_tsubdir {
 
 sub get_fresh_tmp_dir {
     # Adapted from FCR t/01.legacy.t
-    my $tmpd = tempdir( CLEANUP => 1 );
+    my $tmpd = shift || tempdir( CLEANUP => 1 );
     for my $dir ( _get_dirs($tmpd) ) {
         my @created = mkpath($dir, { mode => 0711 });
         die "Unable to create directory $dir for testing: $!" unless @created;
@@ -65,7 +65,7 @@ sub get_fresh_tmp_dir {
         path("$dir/data")->spew("oh hai\n$dir");
         path("$dir/data_tnl")->spew("oh hai\n$dir\n");
         no warnings 'once';
-        if ($File::Copy::Recursive::CopyLink) {
+        if ($File::Copy::Recursive::Reduced::CopyLink) {
             symlink( "data",    "$dir/symlink" );
             symlink( "noexist", "$dir/symlink-broken" );
             symlink( "..",      "$dir/symlink-loopy" );
