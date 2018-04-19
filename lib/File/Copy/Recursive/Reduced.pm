@@ -3,7 +3,7 @@ use strict;
 use warnings;
 
 use parent qw( Exporter );
-our @EXPORT_OK = qw( dircopy fcopy );
+our @EXPORT_OK = qw( dircopy fcopy rcopy );
 our $VERSION = '0.003';
 
 use File::Copy;
@@ -164,9 +164,22 @@ version.
 =cut
 
 sub fcopy {
-    return if @_ != 2;
+    return unless @_ == 2;
     my ($from, $to) = @_;
-    return unless _samecheck($from, $to);
+    #return unless _samecheck($from, $to);
+    return unless _basic_samecheck($from, $to);
+
+    # TODO:  Explore whether we should check (-e $from) here.
+    # If we don't have a starting point, it shouldn't make any sense to go
+    # farther.
+
+    return unless _dev_ino_check($from, $to);
+
+    return _fcopy($from, $to);
+}
+
+sub _fcopy {
+    my ($from, $to) = @_;
     my ( $volm, $path ) = File::Spec->splitpath($to);
 
     # TODO: Explore whether it's possible for $path to be Perl-false in
@@ -272,6 +285,10 @@ sub dircopy {
     # is effectively reduced to '/path/to/directory/' but inside $globstar is
     # set to true.  Have to see what impact of $globstar true is.
 
+    return _dircopy(@_);
+}
+
+sub _dircopy {
     my $globstar = 0;
     my $_zero    = $_[0];
     my $_one     = $_[1];
@@ -398,34 +415,41 @@ sub _dev_ino_check {
 sub _samecheck {
     # Adapted from File::Copy::Recursive
     my ($from, $to) = @_;
-    #return if !defined $from || !defined $to;
-    #return if $from eq $to;
     return unless _basic_samecheck($from, $to);
 
     # TODO:  Explore whether we should check (-e $from) here.
     # If we don't have a starting point, it shouldn't make any sense to go
     # farther.
 
-#    if ($^O ne 'MSWin32') {
-#        # perldoc perlport: "(Win32) "dev" and "ino" are not meaningful."
-#        # Will probably have to add restrictions for VMS and other OSes.
-#        my $one = join( '-', ( stat $from )[ 0, 1 ] ) || '';
-#        my $two = join( '-', ( stat $to   )[ 0, 1 ] ) || '';
-#        if ( $one and $one eq $two ) {
-#            warn "$from and $to are identical";
-#            return;
-#        }
-#    }
     return unless _dev_ino_check($from, $to);
     return 1;
 }
+
+sub rcopy {
+    return unless @_ == 2;
+    my ($from, $to) = @_;
+    return unless _basic_samecheck($from, $to);
+
+    # TODO:  Explore whether we should check (-e $from) here.
+    # If we don't have a starting point, it shouldn't make any sense to go
+    # farther.
+
+    return unless _dev_ino_check($from, $to);
+
+    # symlinks not yet supported
+    #if ( -l $_[0] && $CopyLink ) { goto &fcopy; }
+    return if -l $_[0];
+
+    goto &_dircopy if -d $_[0] || substr( $_[0], ( 1 * -1 ), 1 ) eq '*';
+    goto &_fcopy;
+}
+
 
 =head2 File::Copy::Recursive Subroutines Not Supported in File::Copy::Recursive::Reduced
 
 As of the current version, FCR2 has no publicly documented, exportable subroutines equivalent
 to the following FCR exportable subroutines:
 
-    rcopy
     rcopy_glob
     fmove
     rmove
