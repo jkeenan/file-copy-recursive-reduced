@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 120;
+use Test::More tests => 115;
 use File::Copy::Recursive::Reduced qw(dircopy);
 
 use Capture::Tiny qw(capture_stderr);
@@ -232,7 +232,7 @@ my @dirnames = ( qw|
     note("Basic tests of File::Copy::Recursive::Reduced::dircopy()");
     basic_dircopy_tests(@dirnames);
     SKIP: {
-        skip "System does not support symlinks", 12
+        skip "System does not support symlinks", 13
             unless $File::Copy::Recursive::Reduced::CopyLink;
 
         note("Copy directory which holds symlinks");
@@ -242,7 +242,7 @@ my @dirnames = ( qw|
 }
 
 SKIP: {
-    skip "Set PERL_AUTHOR_TESTING to true to compare with FCR::dircopy()", 32
+    skip "Set PERL_AUTHOR_TESTING to true to compare with FCR::dircopy()", 26
         unless $ENV{PERL_AUTHOR_TESTING};
 
     my $rv = eval { require File::Copy::Recursive; };
@@ -254,12 +254,11 @@ SKIP: {
     note("COMPARISON: Basic tests of File::Copy::Recursive::dircopy()");
     basic_dircopy_tests(@dirnames);
     SKIP: {
-        skip "System does not support symlinks", 12
+        skip "System does not support symlinks",  6
             unless $File::Copy::Recursive::Reduced::CopyLink;
 
         note("Copy directory which holds symlinks");
         mixed_block();
-        mixed_imperfect_block();
     }
 }
 
@@ -427,8 +426,13 @@ sub mixed_imperfect_block {
         "Got expected number of directories, files and symlinks for testing");
 
     my $new = File::Spec->catdir($tdir, 'new');
-    $rv = dircopy($old, $new) or die "Unable to dircopy";
+    my $stderr = capture_stderr { $rv = dircopy($old, $new) or die "Unable to dircopy"; };
     ok(defined $rv, "dircopy() returned defined value");
+    like(
+        $stderr,
+        qr/Copying a symlink.*?whose target does not exist/,
+        "Got expected warning when copying a symlink whose target does not exist"
+    );
 
     my %seen = ();
     my $wanted = sub {
