@@ -16,6 +16,7 @@ use Exporter ();
     touch_left_path_and_test
     prepare_left_side_directories
     make_mixed_directory
+    make_imperfect_mixed_directory
 | );
 use File::Basename ( qw| basename dirname | );
 use File::Path ( qw| mkpath | );
@@ -171,11 +172,7 @@ sub make_mixed_directory {
         my $base = basename($f);
         my $dirs = dirname($f);
         if ($base eq 'f1') {
-            #print "Need to target $f\n";
-            #print "base: $base\n";
             my @dirs = File::Spec->splitdir($dirs);
-            #print "dirs: @dirs\n";
-
             my $orig = File::Spec->catfile($f);
             my $newdir = File::Spec->catdir(@dirs[0 .. ($#dirs -1)], 'beverly');
             my $symlink = File::Spec->catfile($newdir, 'l1');
@@ -188,6 +185,72 @@ sub make_mixed_directory {
     my $rv = {
         dirs => \@dirs_created,
         files => \@files_created,
+        symlinks => \@symlinks_created,
+    };
+    #require Data::Dump;
+    #Data::Dump::dd($rv);
+    return $rv;
+}
+
+sub make_imperfect_mixed_directory {
+    my $topdir = shift;
+    my @dirnames = qw( alpha beta gamma );
+    my @subdirs = ();
+    for my $d (@dirnames) {
+        my $p = File::Spec->catdir($topdir, $d);
+        mkpath $p or die "Unable to mkpath $p";
+        push @subdirs, $p;
+    }
+    my @next_dirnames = qw( albemarle beverly );
+    my @nextdirs = ();
+    my %files_created = ();
+    for my $d (@subdirs) {
+        for my $e (@next_dirnames) {
+            my $p = File::Spec->catdir($d, $e);
+            mkpath $p or die "Unable to mkpath $p";
+            push @nextdirs, $p;
+            my @fnames = qw( f1 f2 );
+            if ($e eq $next_dirnames[0]) {
+                my $f1 = File::Spec->catfile($p, $fnames[0]);
+                my $f2 = File::Spec->catfile($p, $fnames[1]);
+                for my $f ($f1, $f2) {
+                    open my $OUT, '>', $f or die "Unable to open for writing";
+                    print $OUT "\n";
+                    close $OUT or die "Unable to close after writing";
+                    #push @files_created, $f;
+                    $files_created{$f}++;
+                }
+            }
+        }
+    }
+    my @symlinks_created = ();
+    for my $f (keys %files_created) {
+        my $base = basename($f);
+        my $dirs = dirname($f);
+        if ($base eq 'f1') {
+            my @dirs = File::Spec->splitdir($dirs);
+            my $orig = File::Spec->catfile($f);
+            my $newdir = File::Spec->catdir(@dirs[0 .. ($#dirs -1)], 'beverly');
+            my $symlink = File::Spec->catfile($newdir, 'l1');
+            symlink $orig, $symlink or die "Unable to symlink";
+            push @symlinks_created, $symlink;
+        }
+
+    }
+    # delete 1 file which is the target of a symlink
+    # "/tmp/Gi_iWAqYXz/old/alpha/albemarle/f1"
+    for my $f (keys %files_created) {
+        my $g = File::Spec->catfile($topdir, $dirnames[0], $next_dirnames[0], 'f1');
+        if ($f =~ m{\Q$g\E$}) {
+            unlink $g or die "Unable to unlink $g";
+            delete $files_created{$f};
+            last;
+        }
+    }
+    my @dirs_created = (@subdirs, @nextdirs);
+    my $rv = {
+        dirs => \@dirs_created,
+        files => [ keys %files_created ],
         symlinks => \@symlinks_created,
     };
     return $rv;

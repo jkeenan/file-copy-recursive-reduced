@@ -359,37 +359,36 @@ sub _dircopy {
 
         for my $entity (@entities) {
             my ($entity_ut) = $entity =~ m{ (.*) }xms;
-            my $org = File::Spec->catfile( $str, $entity_ut );
-            my $new = File::Spec->catfile( $end, $entity_ut );
-#            if ( -l $org && $CopyLink ) {
-#                my $target = readlink($org);
-#                ($target) = $target =~ m/(.*)/;    # mass-untaint is OK since we have to allow what the file system does
-#                carp "Copying a symlink ($org) whose target does not exist"
-#                  if !-e $target && $BdTrgWrn;
-#                unlink $new if -l $new;
-#                symlink( $target, $new ) or return;
-#            }
-#            elsif ( -d $org ) {
-            if ( -d $org ) {
+            my $from = File::Spec->catfile( $str, $entity_ut );
+            my $to = File::Spec->catfile( $end, $entity_ut );
+            if ( -l $from && $CopyLink ) {
+                my $target = readlink($from);
+                # mass-untaint is OK since we have to allow what the file system does
+                ($target) = $target =~ m/(.*)/;
+                warn "Copying a symlink ($from) whose target does not exist"
+                  if !-e $target;
+                unlink $to if -l $to;
+                symlink( $target, $to ) or return;
+            }
+            elsif ( -d $from ) {
                 my $rc;
-#                if ( !-w $org && $KeepMode ) {
+#                if ( !-w $from && $KeepMode ) {
 #                    local $KeepMode = 0;
-#                    carp "Copying readonly directory ($org); mode of its contents may not be preserved.";
-##                    $rc = $recurs->( $org, $new ) if !defined $buf;
-#                    $rc = $recurs->( $org, $new );
-#                    chmod scalar( ( stat($org) )[2] ), $new;
+#                    carp "Copying readonly directory ($from); mode of its contents may not be preserved.";
+#                    $rc = $recurs->( $from, $to );
+#                    chmod scalar( ( stat($from) )[2] ), $to;
 #                }
 #                else {
-##                    $rc = $recurs->( $org, $new ) if !defined $buf;
-                    $rc = $recurs->( $org, $new );
+#                    $rc = $recurs->( $from, $to );
 #                }
+                $rc = $recurs->( $from, $to );
                 return unless $rc;
                 $filen++;
                 $dirn++;
             }
             else {
-                fcopy( $org, $new ) or return;
-#                chmod scalar( ( stat($org) )[2] ), $new if $KeepMode;
+                fcopy( $from, $to ) or return;
+#                chmod scalar( ( stat($from) )[2] ), $to if $KeepMode;
                 $filen++;
             }
         } # End 'for' loop around @entities
