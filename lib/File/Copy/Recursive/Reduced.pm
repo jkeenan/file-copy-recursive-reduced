@@ -33,17 +33,17 @@ File::Copy::Recursive::Reduced - Recursive copying of files and directories with
 This library is intended as a not-quite-drop-in replacement for certain
 functionality provided by L<CPAN distribution
 File-Copy-Recursive|http://search.cpan.org/dist/File-Copy-Recursive/>.  The
-library provides methods similar enough to that distribution's C<fcopy()> and
-C<dircopy()> functions to be usable in those CPAN distributions often
-described as being part of the Perl toolchain.
+library provides methods similar enough to that distribution's C<fcopy()>,
+C<dircopy()> and C<rcopy()> functions to be usable in those CPAN distributions
+often described as being part of the Perl toolchain.
 
 =head2 Rationale
 
 F<File::Copy::Recursive> (hereinafter referred to as B<FCR>) is heavily used
 in other CPAN libraries.  Out of over 30,000 other CPAN distributions studied
-in early 2018, it ranks in one calculation as the 129th highest distribution
+in early 2018, it ranks by one calculation as the 129th highest distribution
 in terms of its total direct and indirect reverse dependencies.  In current
-parlance, it sits C<high upstream on the CPAN river.> Hence, it ought to work
+parlance, it sits C<high upstream on the CPAN river.>  Hence, it ought to work
 correctly and be installable on all operating systems where Perl is well
 supported.
 
@@ -52,26 +52,29 @@ However, as of the time of creation of F<File::Copy::Recursive::Reduced>
 Perl 5.26 or Perl 5 blead on important operating systems including Windows,
 FreeBSD and NetBSD
 (L<http://fast-matrix.cpantesters.org/?dist=File-Copy-Recursive%200.40>).  As
-a consequence, CPAN installers such as F<cpan> and F<cpanm> will not install
-it without use of the C<--force> option.  This will prevent distributions
-dependent on FCR from being installed as well.  Some patches have been
-provided to the
-L<FCR bug tracker|https://rt.cpan.org/Dist/Display.html?Name=File-Copy-Recursive> for
-this problem but as of the date on which this distribution is being uploaded
-to CPAN, FCR's author has not yet applied them.  However, even if those
-patches are applied, FCR may face other installability problems on certain platforms.
+a consequence, CPAN installers such as F<cpan> and F<cpanm> are failing to
+install it (unless you resort to the C<--force> option).  This prevents
+distributions dependent (directly or indirectly) on FCR from being installed
+as well.
+
+Some patches have been provided to the L<FCR bug
+tracker|https://rt.cpan.org/Dist/Display.html?Name=File-Copy-Recursive> for
+this problem.  However, as of the date on which this distribution is being
+uploaded to CPAN, FCR's maintainer has not yet applied them.  Moreover, even
+if those patches are applied, FCR may face other installability problems on
+certain platforms.
 
 F<File::Copy::Recursive::Reduced> (hereinafter referred to as B<FCR2>) is
-intended to provide an almost minimal subset of FCR's functionality
--- just enough to get the Perl toolchain working on the platforms where FCR is
-currently failing.  Functions will be added to FCR2 only insofar as
-investigation shows that they can replace usage of FCR functions in toolchain
-and other heavily used modules.  No attempt will be made to reproduce all the
-functionality currently provided or claimed to be provided by FCR.
+intended to provide a minimal subset of FCR's functionality -- just enough to
+get the Perl toolchain working on the platforms where FCR is currently
+failing.  Functions will be added to FCR2 only insofar as investigation shows
+that they can replace usage of FCR functions in toolchain and other heavily
+used modules.  No attempt will be made to reproduce all the functionality
+currently provided or claimed to be provided by FCR.
 
 =head1 SUBROUTINES
 
-The current version of FCR2 provides two exportable and publicly supported
+The current version of FCR2 provides three exportable and publicly supported
 subroutines partially equivalent to the similarly named subroutines exported
 by FCR.
 
@@ -147,17 +150,6 @@ for example, function cannot validate arguments.
 Since C<fcopy()> internally uses C<File::Copy::copy()> to perform the copying,
 the arguments are subject to the same qualifications as that function's
 arguments.  Call F<perldoc File::Copy> for discussion of those arguments.
-
-=item * Restrictions
-
-=over 4
-
-=item *
-
-Does not currently handle copying of symlinks, though it may do so in a future
-version.
-
-=back
 
 =back
 
@@ -270,10 +262,10 @@ C<File::Copy::Recursive::dircopy()> is not supported.
 
 =item * Restrictions
 
-None of C<File::Copy::Recursive::dircopy>'s bells and whistles.  No provision
-for special handling of symlinks.  No preservation of file or directory modes.
-No restriction on maximum depth.  No nothing; this is fine-tuned to the needs
-of Perl toolchain modules and their test suites.
+None of C<File::Copy::Recursive::dircopy>'s bells and whistles.  No guaranteed
+preservation of file or directory modes.  No restriction on maximum depth.  No
+nothing; this is fine-tuned to the needs of Perl toolchain modules and their
+test suites.
 
 =back
 
@@ -282,7 +274,7 @@ of Perl toolchain modules and their test suites.
 sub dircopy {
 
     # I'm not supporting the buffer limitation, at this point I can insert a
-    # Check for the correct number of arguments:  2
+    # check for the correct number of arguments:  2
     # FCR2 dircopy does not support buffer limit as third argument
 
     return unless @_ == 2;
@@ -458,17 +450,6 @@ for example, function cannot validate arguments.
 
 Please read the documentation for C<fcopy()> or C<dircopy()>, depending on the
 nature of the first argument.
-
-=item * Restrictions
-
-=over 4
-
-=item *
-
-Does not currently handle copying of symlinks, though it may do so in a future
-version.
-
-=back
 
 =back
 
