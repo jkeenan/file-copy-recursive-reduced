@@ -44,18 +44,3 @@ WriteMakefile(
     })),
     ($mm_ver < 6.31 ? () : (LICENSE => 'perl_5')),
 );
-
-
-__END__
-
-        File::Copy      => 0,
-        File::Spec      => 0,
-        Test::Deep      => 0,
-        Test::File      => 0,
-        File::Temp      => 0,
-        Test::Warn      => 0,
-        File::Glob      => 0,
-        Test::Exception => 0,
-        Cwd             => 0,
-        File::Spec      => 0,
-        Path::Tiny      => 0,
