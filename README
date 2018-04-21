@@ -47,7 +47,7 @@ README for Perl extension File-Copy-Recursive-Reduced
  Install
   This library can be installed in the customary way, *i.e.,* by a
   CPAN installer program such as cpan or cpanm or by satisfying
-  its prerequisites (Capture::Tiny and Path::Tiny, for the test
+  its prerequisites (Capture::Tiny, for the test
   suite only) and then calling:
 
       perl Makefile.PL

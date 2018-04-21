@@ -17,12 +17,12 @@ use Exporter ();
     prepare_left_side_directories
     make_mixed_directory
     make_imperfect_mixed_directory
+    spew slurp
 | );
 use File::Basename ( qw| basename dirname | );
 use File::Path ( qw| mkpath | );
 use File::Spec;
 use File::Temp ( qw| tempdir | );
-use Path::Tiny;
 
 sub create_tfile {
     my $tdir = shift;
@@ -64,9 +64,9 @@ sub get_fresh_tmp_dir {
         my @created = mkpath($dir, { mode => 0711 });
         die "Unable to create directory $dir for testing: $!" unless @created;
 
-        path("$dir/empty")->spew("");
-        path("$dir/data")->spew("oh hai\n$dir");
-        path("$dir/data_tnl")->spew("oh hai\n$dir\n");
+        spew("$dir/empty", "");
+        spew("$dir/data", "oh hai\n$dir");
+        spew("$dir/data_tnl", "oh hai\n$dir\n");
         no warnings 'once';
         if ($File::Copy::Recursive::Reduced::CopyLink) {
             symlink( "data",    "$dir/symlink" );
@@ -254,6 +254,23 @@ sub make_imperfect_mixed_directory {
         symlinks => \@symlinks_created,
     };
     return $rv;
+}
+
+sub spew {
+    my ($file, $contents) = @_;
+    open(my $fh, '>', $file) or die "cannot open $file for writing: $!";
+    binmode $fh, ':unix';
+    print $fh $contents;
+    return 1;
+}
+
+sub slurp {
+    my ($file) = @_;
+    open(my $fh, $file) or die "cannot open $file for reading: $!";
+    binmode $fh, ':unix';
+    my $buf;
+    read $fh, $buf, -s $file; # File::Slurp in a nutshell
+    return $buf;
 }
 
 1;

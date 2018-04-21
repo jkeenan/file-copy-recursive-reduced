@@ -11,7 +11,6 @@ use File::Find;
 use File::Path qw(mkpath);
 use File::Spec;
 use File::Temp qw(tempdir);
-use Path::Tiny;
 use lib qw( t/lib );
 use MockHomeDir;
 use Helper ( qw|
@@ -24,6 +23,7 @@ use Helper ( qw|
     touch_left_path_and_test
     prepare_left_side_directories
     make_mixed_directory
+    spew slurp
 |);
 
 my ($from, $to, $rv);
@@ -270,16 +270,16 @@ SKIP: {
 
     $rv = rcopy( "$tmpd/orig/data", "$tmpd/rcopy" );
     is(
-        path("$tmpd/orig/data")->slurp,
-        path("$tmpd/rcopy")->slurp,
+        slurp("$tmpd/orig/data"),
+        slurp("$tmpd/rcopy"),
         "rcopy() defaults as expected when target does not exist"
     );
 
-    path("$tmpd/rcopyexisty")->spew("oh hai");
+    spew("$tmpd/rcopyexisty", "oh hai");
     my @rcopy_rv = rcopy( "$tmpd/orig/data", "$tmpd/rcopyexisty");
     is(
-        path("$tmpd/orig/data")->slurp,
-        path("$tmpd/rcopyexisty")->slurp,
+        slurp("$tmpd/orig/data"),
+        slurp("$tmpd/rcopyexisty"),
         "rcopy() defaults as expected when target does exist"
     );
 
