@@ -50,7 +50,7 @@ localized versions of FCR's package global variables.
 
 This library can be installed in the customary way, I<i.e.,> by a CPAN
 installer program such as F<cpan> or F<cpanm> or by satisfying its
-prerequisites (Capture::Tiny and Path::Tiny, for the test suite only) and then
+prerequisites (Capture::Tiny, for the test suite only) and then
 calling:
 
     perl Makefile.PL

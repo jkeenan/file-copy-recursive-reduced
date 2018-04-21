@@ -24,7 +24,6 @@ WriteMakefile(
                         'File::Path'    => 0,
                         'File::Spec'    => 0,
                         'File::Temp'    => 0,
-                        'Path::Tiny'    => 0,
                     },
     # Modern EU::MM enables 'make dist' to write good META.json (and META.yml)
     ($mm_ver < 6.46 ? () : (META_MERGE => {
@@ -44,18 +43,3 @@ WriteMakefile(
     })),
     ($mm_ver < 6.31 ? () : (LICENSE => 'perl_5')),
 );
-
-
-__END__
-
-        File::Copy      => 0,
-        File::Spec      => 0,
-        Test::Deep      => 0,
-        Test::File      => 0,
-        File::Temp      => 0,
-        Test::Warn      => 0,
-        File::Glob      => 0,
-        Test::Exception => 0,
-        Cwd             => 0,
-        File::Spec      => 0,
-        Path::Tiny      => 0,

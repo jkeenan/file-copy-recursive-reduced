@@ -10,13 +10,13 @@ use Capture::Tiny qw(capture_stderr);
 use File::Path qw(mkpath);
 use File::Spec;
 use File::Temp qw(tempdir);
-use Path::Tiny;
 use lib qw( t/lib );
 use MockHomeDir;
 use Helper ( qw|
     create_tfile_and_name_for_new_file_in_same_dir
     create_tfile
     get_fresh_tmp_dir
+    spew slurp
 |);
 
 my ($from, $to, $rv);
@@ -263,16 +263,16 @@ SKIP: {
 
     $rv = fcopy( "$tmpd/orig/data", "$tmpd/fcopy" );
     is(
-        path("$tmpd/orig/data")->slurp,
-        path("$tmpd/fcopy")->slurp,
+        slurp("$tmpd/orig/data"),
+        slurp("$tmpd/fcopy"),
         "fcopy() defaults as expected when target does not exist"
     );
 
-    path("$tmpd/fcopyexisty")->spew("oh hai");
+    spew("$tmpd/fcopyexisty", "oh hai");
     my @fcopy_rv = fcopy( "$tmpd/orig/data", "$tmpd/fcopyexisty");
     is(
-        path("$tmpd/orig/data")->slurp,
-        path("$tmpd/fcopyexisty")->slurp,
+        slurp("$tmpd/orig/data"),
+        slurp("$tmpd/fcopyexisty"),
         "fcopy() defaults as expected when target does exist"
     );
 
