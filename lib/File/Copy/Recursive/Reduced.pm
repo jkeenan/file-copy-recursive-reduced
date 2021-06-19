@@ -6,6 +6,8 @@ use parent qw( Exporter );
 our @EXPORT_OK = qw( dircopy fcopy rcopy );
 our $VERSION = '0.006';
 
+use Cwd qw(getcwd);
+use Config;
 use File::Copy;
 use File::Find;
 use File::Path qw( mkpath );
@@ -153,7 +155,10 @@ created file.  Will create F</path/not/yet/existing/directory/newfile>.
 =item * Return Value
 
 Returns C<1> upon success; C<0> upon failure.  Returns an undefined value if,
-for example, function cannot validate arguments.
+for example, function cannot validate arguments.  However, on Cygwin and
+MSYS2, the function will die if you attempt to copy a symlink whose target
+does not exist (per Hakon Hagland
+https://github.com/jkeenan/file-copy-recursive-reduced/issues/3).
 
 =item * Comment
 
@@ -194,11 +199,22 @@ sub _fcopy {
         my $target = readlink( $from );
         # FCR: mass-untaint is OK since we have to allow what the file system does
         ($target) = $target =~ m/(.*)/;
-        warn "Copying a symlink ($from) whose target does not exist"
-          if !-e $target;
+        if (!-e $target) {
+            if ( _cyg_sym_check() ) {
+                warn "Cannot copy a symlink whose target does not exists on OS=$^O";
+            }
+            warn "Copying a symlink ($from) whose target does not exist";
+        }
         my $new = $to;
         unlink $new if -l $new;
-        symlink( $target, $new ) or return;
+        # Creating relative symlinks on MSYS2 or CYGWIN can only be done
+        #  if the target exists relative to the current directory.
+        if ( !File::Spec->file_name_is_absolute( $target ) && _cyg_sym_check() ) {
+            _cyg_symlink($target, $new);
+        }
+        else {
+            symlink( $target, $new ) or return;
+        }
     }
     elsif (-d $from && -f $to) { return; }
     else {
@@ -265,6 +281,9 @@ might be C<0>.
 Should the function not complete (but not C<die>), an undefined value will be
 returned.  That generally indicates problems with argument validation.  This
 approach is taken for consistency with C<File::Copy::Recursive::dircopy()>.
+However, on Cygwin and MSYS2, the function will die if you attempt to copy a
+symlink whose target does not exist (per Hakon Hagland
+https://github.com/jkeenan/file-copy-recursive-reduced/issues/3).
 
 In list context the return value is a one-item list holding the same value as
 returned in scalar context.  The three-item list return value of
@@ -367,10 +386,21 @@ sub _dircopy {
                 my $target = readlink($from);
                 # mass-untaint is OK since we have to allow what the file system does
                 ($target) = $target =~ m/(.*)/;
-                warn "Copying a symlink ($from) whose target does not exist"
-                  if !-e $target;
+                if (!-e $target) {
+                    if ( _cyg_sym_check() ) {
+                        warn "Cannot copy a symlink whose target does not exists on OS=$^O";
+                    }
+                    warn "Copying a symlink ($from) whose target does not exist";
+                }
                 unlink $to if -l $to;
-                symlink( $target, $to ) or return;
+                # Creating relative symlinks on MSYS2 or CYGWIN can only be done
+                #  if the target exists relative to the current directory.
+                if ( !File::Spec->file_name_is_absolute( $target ) && _cyg_sym_check() ) {
+                    _cyg_symlink($target, $to);
+                }
+                else {
+                    symlink( $target, $to ) or return;
+                }
             }
             elsif ( -d $from ) {
                 my $rc;
@@ -402,7 +432,7 @@ sub _basic_samecheck {
 
 sub _dev_ino_check {
     my ($from, $to) = @_;
-    return 1 if $^O eq 'MSWin32';
+    return 1 if $^O =~ /^(?:cygwin|msys|MSWin32)$/;
 
     # perldoc perlport: "(Win32) "dev" and "ino" are not meaningful."
     # Will probably have to add restrictions for VMS and other OSes.
@@ -472,6 +502,18 @@ sub rcopy {
     goto &_fcopy;
 }
 
+sub _cyg_symlink {
+    my ($target, $to)  = @_;
+    my $curdir = getcwd();
+    my ($vol, $path, $file) = File::Spec->splitpath($target);
+    chdir $path or die "Could not chdir to $path: $!";
+    symlink $target, $to;
+    chdir $curdir or die "Could not chdir to $curdir: $!";
+}
+
+sub _cyg_sym_check {
+    return ($^O =~ /^(?:cygwin|msys)$/ && $Config{d_symlink} eq "define");
+}
 
 =head2 File::Copy::Recursive Subroutines Not Supported in File::Copy::Recursive::Reduced
 
@@ -504,6 +546,9 @@ FCR2 follows that found in FCR to a significant extent.
 
 Thanks also to Tom Hukins for supplying the patch which corrects FCR's
 problems and which has been incorporated into FCR2 as well.
+
+Hakon Hagland spotted problems on Cygwin and MSYS2 and supplied a pull request
+which was further refined and applied.
 
 =head1 AUTHOR
 

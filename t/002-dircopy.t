@@ -60,7 +60,7 @@ my ($from, $to, $rv);
             "dircopy() returned undef when provided arguments with identical dev and ino");
         SKIP: {
             skip 'identical-dev-ino check not applicable on Windows', 1
-                if ($^O eq 'MSWin32') ;
+                if $^O =~ /^(?:cygwin|msys|MSWin32)$/;
             like($stderr, qr/\Q$old and $new are identical\E/,
                 "dircopy(): got expected warning when provided arguments with identical dev and ino");
         }
@@ -237,7 +237,10 @@ my @dirnames = ( qw|
 
         note("Copy directory which holds symlinks");
         mixed_block();
-        mixed_imperfect_block();
+        SKIP: {
+            skip "$^O does not support creating broken symlinks", 7 if $^O =~ /^(?:cygwin|msys)$/;
+            mixed_imperfect_block();
+        }
     }
 }
 
