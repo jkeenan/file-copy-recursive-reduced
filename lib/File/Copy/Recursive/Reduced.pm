@@ -547,6 +547,9 @@ FCR2 follows that found in FCR to a significant extent.
 Thanks also to Tom Hukins for supplying the patch which corrects FCR's
 problems and which has been incorporated into FCR2 as well.
 
+Hakon Hagland spotted problems on Cygwin and MSYS2 and supplied a pull request
+which was further refined and applied.
+
 =head1 AUTHOR
 
     James E Keenan
