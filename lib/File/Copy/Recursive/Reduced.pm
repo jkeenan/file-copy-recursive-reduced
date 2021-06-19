@@ -6,6 +6,8 @@ use parent qw( Exporter );
 our @EXPORT_OK = qw( dircopy fcopy rcopy );
 our $VERSION = '0.006';
 
+use Cwd qw(getcwd);
+use Config;
 use File::Copy;
 use File::Find;
 use File::Path qw( mkpath );
@@ -194,11 +196,30 @@ sub _fcopy {
         my $target = readlink( $from );
         # FCR: mass-untaint is OK since we have to allow what the file system does
         ($target) = $target =~ m/(.*)/;
-        warn "Copying a symlink ($from) whose target does not exist"
-          if !-e $target;
+        if (!-e $target) {
+            if (($^O =~ /^(?:cygwin|msys)$/ && $Config{d_symlink} eq "define")) {
+                # TODO: Should we die or return 0 here?
+                warn "Cannot copy a symlink whose target does not exists on OS=$^O";
+                return 0;
+            }
+            warn "Copying a symlink ($from) whose target does not exist";
+        }
         my $new = $to;
         unlink $new if -l $new;
-        symlink( $target, $new ) or return;
+        # Creating relative symlinks on MSYS2 or CYGWIN can only be done
+        #  if the target exists relative to the current directory.
+        if (!File::Spec->file_name_is_absolute( $target ) &&
+              ($^O =~ /^(?:cygwin|msys)$/ && $Config{d_symlink} eq "define"))
+        {
+            my $curdir = getcwd();
+            my ($vol, $path, $file) = File::Spec->splitpath($target);
+            chdir $path or die "Could not chdir to $path: $!";
+            symlink $target, $new;
+            chdir $curdir;
+        }
+        else {
+            symlink( $target, $new ) or return;
+        }
     }
     elsif (-d $from && -f $to) { return; }
     else {
@@ -367,10 +388,29 @@ sub _dircopy {
                 my $target = readlink($from);
                 # mass-untaint is OK since we have to allow what the file system does
                 ($target) = $target =~ m/(.*)/;
-                warn "Copying a symlink ($from) whose target does not exist"
-                  if !-e $target;
+                if (!-e $target) {
+                    if (($^O =~ /^(?:cygwin|msys)$/ && $Config{d_symlink} eq "define")) {
+                        # TODO: Should we die or just continue with the loop here?
+                        warn "Cannot copy a symlink whose target does not exists on OS=$^O";
+                        return 0;
+                    }
+                    warn "Copying a symlink ($from) whose target does not exist";
+                }
                 unlink $to if -l $to;
-                symlink( $target, $to ) or return;
+                # Creating relative symlinks on MSYS2 or CYGWIN can only be done
+                #  if the target exists relative to the current directory.
+                if (!File::Spec->file_name_is_absolute( $target ) &&
+                     ($^O =~ /^(?:cygwin|msys)$/ && $Config{d_symlink} eq "define"))
+                {
+                    my $curdir = getcwd();
+                    my ($vol, $path, $file) = File::Spec->splitpath($target);
+                    chdir $path or die "Could not chdir to $path: $!";
+                    symlink $target, $to;
+                    chdir $curdir;
+                }
+                else {
+                    symlink( $target, $to ) or return;
+                }
             }
             elsif ( -d $from ) {
                 my $rc;
@@ -402,7 +442,7 @@ sub _basic_samecheck {
 
 sub _dev_ino_check {
     my ($from, $to) = @_;
-    return 1 if $^O eq 'MSWin32';
+    return 1 if $^O =~ /^(?:cygwin|msys|MSWin32)$/;
 
     # perldoc perlport: "(Win32) "dev" and "ino" are not meaningful."
     # Will probably have to add restrictions for VMS and other OSes.
