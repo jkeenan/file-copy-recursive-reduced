@@ -207,7 +207,7 @@ sub more_basic_tests {
         }
     }
 
-    note("Case 4: " . q|fcopy('/path/to/filename', #'/path/not/yet/existing/directory/newfile');|);
+    note("Case 4: " . q|fcopy('/path/to/filename', '/path/not/yet/existing/directory/newfile');|);
     $base = 'file4';
     $orig = File::Spec->catfile($adir, $base);
     @subdirs = qw( gamma delta );

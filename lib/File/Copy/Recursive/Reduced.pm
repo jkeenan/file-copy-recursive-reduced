@@ -155,10 +155,7 @@ created file.  Will create F</path/not/yet/existing/directory/newfile>.
 =item * Return Value
 
 Returns C<1> upon success; C<0> upon failure.  Returns an undefined value if,
-for example, function cannot validate arguments.  However, on Cygwin and
-MSYS2, the function will die if you attempt to copy a symlink whose target
-does not exist (per Hakon Hagland
-https://github.com/jkeenan/file-copy-recursive-reduced/issues/3).
+for example, function cannot validate arguments.
 
 =item * Comment
 
@@ -187,6 +184,8 @@ sub fcopy {
 
 sub _fcopy {
     my ($from, $to) = @_;
+    # Note that $to can be a directory or a file. If $to is a directory, File::Spec->splitpath($to)
+    #  returns the parent directory of $to.
     my ( $volm, $path ) = File::Spec->splitpath($to);
 
     # TODO: Explore whether it's possible for $path to be Perl-false in
@@ -199,22 +198,23 @@ sub _fcopy {
         my $target = readlink( $from );
         # FCR: mass-untaint is OK since we have to allow what the file system does
         ($target) = $target =~ m/(.*)/;
+        my $dest = _get_dest_path($from, $to);
+        my $destdir = _parent_dir($dest);
+        my $target_dest = _get_target_dest($target, $destdir);
         if (!-e $target) {
-            if ( _cyg_sym_check() ) {
-                warn "Cannot copy a symlink whose target does not exists on OS=$^O";
-            }
             warn "Copying a symlink ($from) whose target does not exist";
         }
-        my $new = $to;
-        unlink $new if -l $new;
-        # Creating relative symlinks on MSYS2 or CYGWIN can only be done
-        #  if the target exists relative to the current directory.
-        if ( !File::Spec->file_name_is_absolute( $target ) && _cyg_sym_check() ) {
-            _cyg_symlink($target, $new);
+        if (_relative_path($target) && $target_dest ne $target && !-e $target_dest) {
+            warn "Copying a symlink ($from) with a relative target which does not exist";
         }
-        else {
-            symlink( $target, $new ) or return;
+        if ( !-e $target_dest && _cygwin_strict_symlink_check() ) {
+            warn "Cannot create a symlink whose target does not exists on OS=$^O";
         }
+        unlink $dest if -l $dest;
+        # Note: does not necessarily preserve the ownership of the symlink, to do that
+        #  we would need to have access to the lchown (2) system call, see
+        #  https://stackoverflow.com/a/420080/2173773  for more information.
+        symlink( $target, $dest ) or return 0;
     }
     elsif (-d $from && -f $to) { return; }
     else {
@@ -226,6 +226,50 @@ sub _fcopy {
         chmod scalar((stat($from))[2]), $mode_trg;
     }
     return 1;
+}
+
+sub _relative_path {
+    my ( $path ) = @_;
+
+    return !File::Spec->file_name_is_absolute( $path);
+}
+
+sub _parent_dir {
+    my ( $dir ) = @_;
+
+    my ( $volm, $path, $file ) = File::Spec->splitpath($dir);
+    return File::Spec->catpath($volm, $path);
+}
+
+# If $to is an existing directory, use it as the parent dir and extract the file name from the basename
+#  of $from.  Else, assume $to is a file (not directory) and use it as the dest path.
+sub _get_dest_path {
+    my ( $from, $to ) = @_;
+
+    return $to if !-d $to;
+    my ( $volm, $path, $file ) = File::Spec->splitpath($from);
+    return File::Spec->catfile($to, $file);
+}
+
+# Example: assume the current directory is /home/user/dir . Assume we want to copy a symlink file
+#   fileA.txt in the current directory (absolute path = /home/user/dir/fileA.txt). Assume the target
+#   of the symlink file (fileA.txt) is a relative path equal to $target = a/b/c/fileB.txt (since fileA.txt
+#   is located in the current directory, this path is relative to /home/user/dir). Now we want to
+#   copy the symlink file fileA.txt to e.g. $dest = d/e/f/fileB.txt (path is still relative to the
+#   current directory). When copying a symlink with a relative target path, we want to keep the exact
+#   relative path (we preserve the exact form of the target). It means that the new symlink will not
+#   necessarily refer to fileB.txt in /home/user/dir/a/b/c anymore. To copy the symlink, we need to create
+#   a new symlink file $dest with target $target relative to the directory where
+#   fileB.txt is located. That is: relative to $destdir = dirname($dest). It means that the target of
+#   fileB.txt becomes the file name $target_dest = d/e/f/a/b/c/fileA.txt relative to the current directory.
+#
+sub _get_target_dest {
+    my ($target, $destdir) = @_;
+
+    if (File::Spec->file_name_is_absolute( $target )) {
+        return $target;
+    }
+    return File::Spec->catfile( $destdir, $target);
 }
 
 sub pathmk {
@@ -281,9 +325,6 @@ might be C<0>.
 Should the function not complete (but not C<die>), an undefined value will be
 returned.  That generally indicates problems with argument validation.  This
 approach is taken for consistency with C<File::Copy::Recursive::dircopy()>.
-However, on Cygwin and MSYS2, the function will die if you attempt to copy a
-symlink whose target does not exist (per Hakon Hagland
-https://github.com/jkeenan/file-copy-recursive-reduced/issues/3).
 
 In list context the return value is a one-item list holding the same value as
 returned in scalar context.  The three-item list return value of
@@ -361,7 +402,8 @@ sub _dircopy {
     my $level   = 0;
     my $filen   = 0;
     my $dirn    = 0;
-
+    my $cygstrict = _cygwin_strict_symlink_check();
+    my @symlinks;
     my $recurs;    #must be my()ed before sub {} since it calls itself
     $recurs = sub {
         my ( $str, $end ) = @_;
@@ -386,20 +428,20 @@ sub _dircopy {
                 my $target = readlink($from);
                 # mass-untaint is OK since we have to allow what the file system does
                 ($target) = $target =~ m/(.*)/;
+                my $dest = $to;
+                my $destdir = _parent_dir($dest);
+                my $target_dest = _get_target_dest($target, $destdir);
                 if (!-e $target) {
-                    if ( _cyg_sym_check() ) {
-                        warn "Cannot copy a symlink whose target does not exists on OS=$^O";
-                    }
                     warn "Copying a symlink ($from) whose target does not exist";
                 }
-                unlink $to if -l $to;
-                # Creating relative symlinks on MSYS2 or CYGWIN can only be done
-                #  if the target exists relative to the current directory.
-                if ( !File::Spec->file_name_is_absolute( $target ) && _cyg_sym_check() ) {
-                    _cyg_symlink($target, $to);
+                if ($cygstrict && _relative_path($target) && !-e $target_dest) {
+                    # postpone creating symlink to after all non-symlink files
+                    # has been copied. Then $target_dest might have been created.
+                    push @symlinks, [$target, $dest];
                 }
                 else {
-                    symlink( $target, $to ) or return;
+                    unlink $dest if -l $dest;
+                    symlink( $target, $dest ) or return;
                 }
             }
             elsif ( -d $from ) {
@@ -420,6 +462,18 @@ sub _dircopy {
     }; # END definition of $recurs
 
     $recurs->( $_zero, $_one ) or return;
+    if ( $cygstrict ) {
+        for my $link (@symlinks) {
+            my ($target, $dest ) = @$link;
+            my $destdir = _parent_dir($dest);
+            my $target_dest = _get_target_dest($target, $destdir);
+            if ( !-e $target_dest ) {
+                warn "Cannot create a symlink whose target does not exists on OS=$^O";
+            }
+            unlink $dest if -l $dest;
+            symlink( $target, $dest ) or return;
+        }
+    }
     return $filen;
 }
 
@@ -502,17 +556,171 @@ sub rcopy {
     goto &_fcopy;
 }
 
-sub _cyg_symlink {
-    my ($target, $to)  = @_;
-    my $curdir = getcwd();
-    my ($vol, $path, $file) = File::Spec->splitpath($target);
-    chdir $path or die "Could not chdir to $path: $!";
-    symlink $target, $to;
-    chdir $curdir or die "Could not chdir to $curdir: $!";
+# Some information about symlinks on MSYS2 and Cygwin. Tested on Windows 10.
+#
+# Starting with Windows 10 Insiders build 14972, native symlinks can be created
+#   without needing to elevate the console as administrator, see
+#   https://blogs.windows.com/windowsdeveloper/2016/12/02/symlinks-windows-10/
+#
+#   To enable this feature, go to "Windows Security" -> "For developers",
+#   and turn on "Developer mode".
+#
+# Before Windows 10 Insiders build 14972, native symlinks could still be created but needed
+#  an elevated CMD console.
+#
+# [[ Note: It is possible to query (from e.g. perl) if developer mode is activated by investigating
+#  the registry key SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock ]]
+#
+# How is this implemented in MSYS2 and in Cygwin? (TODO: Only tested on my current
+#   Windows 10 Home, 21H1. Does it work similarly on older windows machines?)
+#
+# The behavior of the "ln --symbolic <target> <destination>" command in Cygwin depends
+#   on the environment variable CYGWIN, see
+#
+#   https://cygwin.com/cygwin-ug-net/using-cygwinenv.html
+#
+#   The CYGWIN environment variable is used to configure many global settings for the Cygwin
+#   runtime system. It contain options separated by blank characters. The option that is important
+#   for the "ln -s" command is called "winsymlinks". According to the linked page above,
+#   there are four cases for the winsymlinks option to consider:
+#
+# 1. winsymlinks is not defined. (Note: this behavior differs from that of MSYS2, see below).
+#    This is called the default behavior for Cygwin.
+#  a) If native symlinks are enabled, see above, then this is equivalent to setting
+#    winsymlinks to "native" (e.g. CYGWIN="winsymlinks:native"), see 3) below.
+#  b) If native symlinks are not enabled, this is equivalent to setting winsymlinks to "lnk"
+#     see 2) below.
+#
+# 2. winsymlinks='' or winsymlinks=lnk
+#   Whether <target> exists or not, "ln -s" creates <destination> as a Windows shortcut file
+#     with a special header and the R/O attribute set.
+#
+# 3. winsymlinks=native
+#    a) If native symlinks are enabled, and whether <target> exists or not, creates <destination> as
+#       a native Windows symlink. Note, this is most similar to the behavior of "ln -s" on *nix.
+#    b) If native symlinks are not enabled, it is equivalent to setting winsymlinks to "lnk",
+#       see 2) above.
+#
+# 4. winsymlinks=nativestrict
+#  a) If native symlinks are enabled and <target> exists, creates <destination> as a native Windows symlink,
+#  b) else if native symlinks are not enabled or if <target> does not exist, "ln -s" fails.
+#
+#
+#   Similiarly to the CYGWIN environment variable, the MSYS2 environment variable is used to
+#   configure global settings for the MSYS2 runtime system (since MSYS2 are based on Cygwin). The
+#   four cases for the winsymlinks option to consider is:
+#
+# 1. winsymlinks is not defined. The default behavior for MSYS2. (Note: this is not similar to Cygwin)
+#  a) If <target> exists, <target> is (surprise!!) copied to <destination>, so <destination>
+#     does not become a symlink but simply a copy of <target>, this happens whether
+#     <target> is a file or a directory, or whether native symlinks are enabled or not. See
+#
+#   https://github.com/msys2/MSYS2-packages/issues/249
+#
+#  for more information.
+#
+#  b) If <target> does not exist, "ln -s" fails.
+#
+# 2. winsymlinks='' or winsymlinks=lnk
+#   (Similar to Cygwin, see above)
+#
+# 3. winsymlinks=native
+#   (Similar to Cygwin, see above)
+#
+# 4. winsymlinks=nativestrict
+#   (Similar to Cygwin, see avove)
+#
+# Next question: How does the MSYS2 and CYGWIN environment variables afffect perl?
+#
+#  First thing:
+#  - On both MSYS2 and Cygwin,
+#
+#       perl -MConfig -E'say $Config{d_symlink}'
+#
+#    prints "define".
+#
+#  - On regular windows ($^O eq "MSWin32") with e.g. strawberry perl, $Config{d_symlink}
+#   -- is not defined for perl versions < 5.33.5
+#   -- is defined for perl versions >= 5.33.5, see
+#    https://metacpan.org/release/CORION/perl-5.33.5/view/pod/perldelta.pod#Windows
+#
+#  So the perl symlink function "works" on MSYS2 and Cygwin, and for newer versions of MSWin32.
+#
+#  For the further discussion below, consider the perl statement:
+#
+#   symlink $target, $dest;
+#
+#  If $dest exists, the symlink command always fail (returning a value of 0 and setting $!).
+#  So consider the case where $dest does not exist:
+#  There are four cases for the winsymlinks option contained in the MSYS or CYGWIN env. variable
+#  to consider, as above for the "ln -s" command. It turns out that symlink behaves identically to
+#  "ln -s" command, and when "ln -s" fails, symlink also fails and returns a value of 0 and sets $! (ERRNO).
+#
+#  Also note that the environment variable MSYS or CYGWIN cannot/should not be changed from within the
+#  perl script itself. I am not sure why this does not work, but I tested it and it showed undefined
+#  behavior in my tests. So the variables should be set before perl is run, e.g. on the command line:
+#
+#   MSYS=winsymlinks:native perl p.pl
+#
+# What about the perl "-l" operator ? Tests show that it does not differentiate between a Windows shortcut
+#  file and a native symlink file. So
+#
+#    say "symlink" if -l "foobar";
+#
+# prints "symlink" for both file types. Further, there seems to be no tool available to determine which
+#  of the two file types a given symlink file is. Note that there is a cygwin command readshortcut.exe
+#  that can be used to read a shortcut file (with .lnk extension).
+#
+# So when we try to copy a symlink file, it is difficult to determine if the destination should be
+#   a native symlink or a windows shortcut. The user would probably expect that the destination is the
+#   same type of symlink as the source was. Note that even the "cp" command in MSYS2
+#
+#   cp -a source destination
+#
+# does in fact in general _not_ preserve the symlink type (tested), instead the destination symlink
+# type is determined by the MSYS2 winsymlinks option (and not the symlink type of the source).
+#
+sub _cygwin_strict_symlink_check {
+    return   _cygwin_strict_symlink_check_general("msys")
+          || _cygwin_strict_symlink_check_general("cygwin");
 }
 
-sub _cyg_sym_check {
-    return ($^O =~ /^(?:cygwin|msys)$/ && $Config{d_symlink} eq "define");
+# Checks if creating a broken symlink will fail. Note that for the case where winsymlinks is equals to
+#  nativestrict (se 4. above), symlink will also fail to create a symlink that is not broken if
+#  the parent console is not run with admin privileges or if developer mode has not been switched on
+#  in the Windows Security settings.
+sub _cygwin_strict_symlink_check_general {
+    my ( $os ) = @_;
+    my $OS = uc $os;
+    if ($^O eq $os) {
+        if (!defined $ENV{$OS} || $ENV{$OS} !~ /(?:^|\s+)winsymlinks/) {
+            if ($^O eq 'msys') {
+                if (defined $ENV{FILE_COPY_RECURSIVE_COPY_SYMLINK}) {
+                    #warn "symlink not supported, copying file instead";
+                    return 1;
+                }
+            }
+            else {
+                die "Cannot create symlink. Please set the en winsymlinks option in the MSYS environment "
+                   . "variable to lnk, native, or nativestrict. Or alternatively, instead of creating a "
+                   . "symlink, a regular file that is a copy of the symlink target can be created. "
+                   . "To enable this option keep winsymlinks undefined and also set the "
+                   . "environment variable FILE_COPY_RECURSIVE_COPY_SYMLINK to a defined value.";
+            }
+            return 0;
+        }
+        if ($ENV{$OS} =~ /(?:^|\s+)winsymlinks(?::lnk)?(?:\s+|$)/) {
+            warn "Creating symlink as a Windows shortcut file";
+            return 0;
+        }
+        elsif ($ENV{$OS} =~  /(?:^|\s+)\Qwinsymlinks:native\E(?:$|\s+)/) {
+            return 0;
+        }
+        elsif ($ENV{$OS} =~  /(?:^|\s+)\Qwinsymlinks:nativestrict\E(?:$|\s+)/) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 =head2 File::Copy::Recursive Subroutines Not Supported in File::Copy::Recursive::Reduced
