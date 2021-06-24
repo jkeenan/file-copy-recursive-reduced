@@ -60,7 +60,7 @@ SKIP: {
         "rcopy() returned undef when provided arguments with identical dev and ino");
     SKIP: {
         skip 'identical-dev-ino check not applicable on Windows', 1
-            if ($^O eq 'MSWin32') ;
+            if $^O =~ /^(?:cygwin|msys|MSWin32)$/;
         like($stderr, qr/\Q$old and $new are identical\E/,
             "rcopy(): got expected warning when provided arguments with identical dev and ino");
     }
@@ -79,12 +79,15 @@ SKIP: {
         or die "Unable to symlink $symlink to target $old for testing: $!";
     ok(-l $symlink, "rcopy(): $symlink is indeed a symlink");
     is(readlink($symlink), $old, "Symlink $symlink points to $old");
-    $new = File::Spec->catfile($tdir, 'new');
-    $rv = rcopy($symlink, $new);
-    ok(defined $rv, "fcopy() returned defined value when copying from symlink");
-    ok($rv, "fcopy() returned true value when copying from symlink");
-    ok(-f $new, "fcopy(): $new is a file");
-    ok(-l $new, "fcopy(): but $new is also another symlink");
+    SKIP: {
+        skip "$^O does not support creating broken symlinks", 4 if $^O =~ /^(?:cygwin|msys)$/;
+        $new = File::Spec->catfile($tdir, 'new');
+        $rv = rcopy($symlink, $new);
+        ok(defined $rv, "fcopy() returned defined value when copying from symlink");
+        ok($rv, "fcopy() returned true value when copying from symlink");
+        ok(-f $new, "fcopy(): $new is a file");
+        ok(-l $new, "fcopy(): but $new is also another symlink");
+    }
 
     my ($xold, $xnew, $xsymlink, $stderr);
     $xold = create_tfile($tdir);
@@ -95,11 +98,14 @@ SKIP: {
     is(readlink($symlink), $old, "Symlink $symlink points to $old");
     $xnew = File::Spec->catfile($tdir, 'xnew');
     unlink $xold or die "Unable to unlink $xold during testing: $!";
-    $stderr = capture_stderr { $rv = rcopy($xsymlink, $xnew); };
-    ok(defined $rv, "fcopy() returned defined value when copying from symlink");
-    ok($rv, "fcopy() returned true value when copying from symlink");
-    like($stderr, qr/Copying a symlink \($xsymlink\) whose target does not exist/,
-        "fcopy(): Got expected warning when copying from symlink whose target does not exist");
+    SKIP: {
+        skip "$^O does not support creating broken symlinks", 3 if $^O =~ /^(?:cygwin|msys)$/;
+        $stderr = capture_stderr { $rv = rcopy($xsymlink, $xnew); };
+        ok(defined $rv, "fcopy() returned defined value when copying from symlink");
+        ok($rv, "fcopy() returned true value when copying from symlink");
+        like($stderr, qr/Copying a symlink \($xsymlink\) whose target does not exist/,
+            "fcopy(): Got expected warning when copying from symlink whose target does not exist");
+    }
 }
 
 {
@@ -343,7 +349,7 @@ SKIP: {
             "rcopy() returned undef when provided arguments with identical dev and ino");
         SKIP: {
             skip 'identical-dev-ino check not applicable on Windows', 1
-                if ($^O eq 'MSWin32') ;
+                if $^O =~ /^(?:cygwin|msys|MSWin32)$/;
             like($stderr, qr/\Q$old and $new are identical\E/,
                 "rcopy(): got expected warning when provided arguments with identical dev and ino");
         }

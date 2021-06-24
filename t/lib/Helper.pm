@@ -17,6 +17,8 @@ use Exporter ();
     prepare_left_side_directories
     make_mixed_directory
     make_imperfect_mixed_directory
+    run_system_cmd
+    run_bash_cmd
 | );
 use File::Basename ( qw| basename dirname | );
 use File::Path ( qw| mkpath | );
@@ -254,6 +256,24 @@ sub make_imperfect_mixed_directory {
         symlinks => \@symlinks_created,
     };
     return $rv;
+}
+sub run_bash_cmd {
+    my $cmd = shift;
+    return run_system_cmd(['bash', '-c', $cmd]);
+}
+
+sub run_system_cmd {
+    my ($cmd) = @_;
+
+    my $res = system @$cmd;
+    if ( $res == -1 ) {
+        die "failed to run command @$cmd: $!";
+    }
+    elsif ($res & 127) {
+        die sprintf "system(@$cmd) : killed by signal %d, %s coredump",
+            ($res & 127),  ($res & 128) ? 'with' : 'without';
+    }
+    return $res >> 8;
 }
 
 1;
