@@ -98,7 +98,7 @@ SKIP: {
     $stderr = capture_stderr { $rv = rcopy($xsymlink, $xnew); };
     ok(defined $rv, "fcopy() returned defined value when copying from symlink");
     ok($rv, "fcopy() returned true value when copying from symlink");
-    like($stderr, qr/Copying a symlink \($xsymlink\) whose target does not exist/,
+    like($stderr, qr/Copying a symlink \(\Q$xsymlink\E\) whose target does not exist/,
         "fcopy(): Got expected warning when copying from symlink whose target does not exist");
 }
 
@@ -602,13 +602,16 @@ sub rcopy_mixed_block {
     ok(defined $rv, "rcopy() returned defined value");
     my %seen = ();
     my $wanted = sub {
-        unless ($File::Find::name eq $new) {
-            $seen{dirs}{$File::Find::name}++ if -d $File::Find::name;
-            if (-l $File::Find::name) {
-                $seen{symlinks}{$File::Find::name}++;
+        # NOTE: File::Find returns path with forward slashes on Windows
+        #  so we need to convert to canonical path before comparing
+        my $name = File::Spec->canonpath($File::Find::name);
+        unless ($name eq $new) {
+            $seen{dirs}{$name}++ if -d $name;
+            if (-l $name) {
+                $seen{symlinks}{$name}++;
             }
-            elsif (-f $File::Find::name) {
-                $seen{files}{$File::Find::name}++;
+            elsif (-f $name) {
+                $seen{files}{$name}++;
             }
         }
     };
