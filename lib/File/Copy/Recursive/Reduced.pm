@@ -4,7 +4,7 @@ use warnings;
 
 use parent qw( Exporter );
 our @EXPORT_OK = qw( dircopy fcopy rcopy );
-our $VERSION = '0.006';
+our $VERSION = '0.007';
 
 use File::Copy;
 use File::Find;
@@ -504,6 +504,9 @@ FCR2 follows that found in FCR to a significant extent.
 
 Thanks also to Tom Hukins for supplying the patch which corrects FCR's
 problems and which has been incorporated into FCR2 as well.
+
+Thanks to Håkon Hægland for paying attention to how this library performs on
+Windows and other platforms to which the author does not have access.
 
 =head1 AUTHOR
 
