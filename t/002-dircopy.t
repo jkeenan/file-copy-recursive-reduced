@@ -382,13 +382,16 @@ sub mixed_block {
     ok(defined $rv, "dircopy() returned defined value");
     my %seen = ();
     my $wanted = sub {
-        unless ($File::Find::name eq $new) {
-            $seen{dirs}{$File::Find::name}++ if -d $File::Find::name;
-            if (-l $File::Find::name) {
-                $seen{symlinks}{$File::Find::name}++;
+        # NOTE: File::Find returns path with forward slashes on Windows
+        #  so we need to convert to canonical path before comparing
+        my $name = File::Spec->canonpath($File::Find::name);
+        unless ($name eq $new) {
+            $seen{dirs}{$name}++ if -d $name;
+            if (-l $name) {
+                $seen{symlinks}{$name}++;
             }
-            elsif (-f $File::Find::name) {
-                $seen{files}{$File::Find::name}++;
+            elsif (-f $name) {
+                $seen{files}{$name}++;
             }
         }
     };
@@ -436,13 +439,16 @@ sub mixed_imperfect_block {
 
     my %seen = ();
     my $wanted = sub {
-        unless ($File::Find::name eq $new) {
-            $seen{dirs}{$File::Find::name}++ if -d $File::Find::name;
-            if (-l $File::Find::name) {
-                $seen{symlinks}{$File::Find::name}++;
+        # NOTE: File::Find returns path with forward slashes on Windows
+        #  so we need to convert to canonical path before comparing
+        my $name = File::Spec->canonpath($File::Find::name);
+        unless ($name eq $new) {
+            $seen{dirs}{$name}++ if -d $name;
+            if (-l $name) {
+                $seen{symlinks}{$name}++;
             }
-            elsif (-f $File::Find::name) {
-                $seen{files}{$File::Find::name}++;
+            elsif (-f $name) {
+                $seen{files}{$name}++;
             }
         }
     };
