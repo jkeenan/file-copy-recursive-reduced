@@ -507,8 +507,6 @@ sub basic_rcopy_dir_tests {
 
         # Test
         my ($from, $to) = ($old, $tdir2);
-        print STDOUT "AAA: 1st: $from\n";
-        print STDOUT "     2nd: $to\n";
         $rv = rcopy($from, $to);
         ok($rv, "rcopy() returned true value");
         ok(-d $tdir2, "rcopy(): directory $tdir2 created");
@@ -535,8 +533,6 @@ sub basic_rcopy_dir_tests {
 
         # Test
         my ($from, $to) = ($old, $tdir2);
-        print STDOUT "BBB: 1st: $from\n";
-        print STDOUT "     2nd: $to\n";
         $rv = rcopy($from, $to);
         ok(-d $expected, "rcopy(): directory $expected created");
         # test for creation of files
@@ -570,8 +566,6 @@ sub basic_rcopy_dir_tests {
 
         # Test
         my ($from, $to) = ($old, $tdir2);
-        print STDOUT "CCC: 1st: $from\n";
-        print STDOUT "     2nd: $to\n";
         $rv = rcopy($from, $to);
         ok($rv, "rcopy() returned true value");
         ok(-d $expected, "rcopy(): directory $expected created");

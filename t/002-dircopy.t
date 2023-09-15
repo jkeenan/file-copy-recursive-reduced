@@ -281,8 +281,6 @@ sub basic_dircopy_tests {
 
         # Test
         my ($from, $to) = ($old, $tdir2);
-        print STDOUT "AAA: 1st: $from\n";
-        print STDOUT "     2nd: $to\n";
         $rv = dircopy($from, $to);
         ok($rv, "dircopy() returned true value");
         ok(-d $tdir2, "dircopy(): directory $tdir2 created");
@@ -309,8 +307,6 @@ sub basic_dircopy_tests {
 
         # Test
         my ($from, $to) = ($old, $tdir2);
-        print STDOUT "BBB: 1st: $from\n";
-        print STDOUT "     2nd: $to\n";
         $rv = dircopy($from, $to);
         ok(-d $expected, "dircopy(): directory $expected created");
         # test for creation of files
@@ -344,8 +340,6 @@ sub basic_dircopy_tests {
 
         # Test
         my ($from, $to) = ($old, $tdir2);
-        print STDOUT "CCC: 1st: $from\n";
-        print STDOUT "     2nd: $to\n";
         $rv = dircopy($from, $to);
         ok($rv, "dircopy() returned true value");
         ok(-d $expected, "dircopy(): directory $expected created");
