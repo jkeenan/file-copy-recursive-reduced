@@ -523,7 +523,7 @@ it and/or modify it under the same terms as Perl itself.
 The full text of the license can be found in the
 LICENSE file included with this module.
 
-Copyright James E Keenan 2018.  All rights reserved.
+Copyright James E Keenan 2018-2023.  All rights reserved.
 
 =head1 SEE ALSO
 
