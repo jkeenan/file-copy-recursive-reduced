@@ -1,5 +1,9 @@
 Revision history for Perl module File::Copy::Recursive::Reduced
 
+0.008 TBD
+    - Encoding directive added to POD, contributed by gregor herrmann from
+      Debian.
+
 0.007 Sat Sep 16 07:48:17 AM EDT 2023
     - Corrections (in test files only) to better accommodate Windows path
       separators, mostly provided by Håkon Hægland.
