@@ -47,7 +47,6 @@ WriteMakefile(
 
 
 __END__
-
         File::Copy      => 0,
         File::Spec      => 0,
         Test::Deep      => 0,
