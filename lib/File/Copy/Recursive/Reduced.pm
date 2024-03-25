@@ -4,7 +4,7 @@ use warnings;
 
 use parent qw( Exporter );
 our @EXPORT_OK = qw( dircopy fcopy rcopy );
-our $VERSION = '0.007';
+our $VERSION = '0.008';
 
 use File::Copy;
 use File::Find;
