@@ -48,7 +48,7 @@ parlance, it sits C<high upstream on the CPAN river.>  Hence, it ought to work
 correctly and be installable on all operating systems where Perl is well
 supported.
 
-However, as of early April 2018, FCR version 0.40 wass failing to pass its tests against either
+However, as of early April 2018, FCR version 0.40 was failing to pass its tests against either
 Perl 5.26 or Perl 5 blead on important operating systems including Windows,
 FreeBSD and NetBSD
 (L<http://fast-matrix.cpantesters.org/?dist=File-Copy-Recursive%200.40>).  As
